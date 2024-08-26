@@ -1,0 +1,6 @@
+@CET.API_HostAddress = http://localhost:5042
+
+GET {{CET.API_HostAddress}}/weatherforecast/
+Accept: application/json
+
+###
