@@ -6,6 +6,9 @@ namespace Core.Domain
 {
     public class UserEntity : IdentityUser
     {
+        
+        public string PIN { get; set; } = string.Empty;
+        public CPINType PINType { get; set; }
         public DateOnly? BirthDate { get; set; }
         [Column(name: "Image")]
         private string _imageJson { get; set; } = string.Empty;
