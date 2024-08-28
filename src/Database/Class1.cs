@@ -1,4 +1,4 @@
-﻿namespace Core.Domain;
+﻿namespace Database;
 
 public class Class1
 {
