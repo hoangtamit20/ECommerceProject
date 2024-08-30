@@ -1,6 +1,8 @@
+using Microsoft.AspNetCore.Identity;
+
 namespace Core.Domain
 {
-    public class RoleEntity
+    public class RoleEntity : IdentityRole
     {
         
     }

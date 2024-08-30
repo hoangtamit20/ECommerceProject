@@ -2,7 +2,7 @@ using Microsoft.EntityFrameworkCore;
 
 namespace Database.DbContexts
 {
-    internal class CustomerDbContext : DbContext
+    internal sealed class CustomerDbContext : DbContext
     {
         public CustomerDbContext(DbContextOptions options) : base(options)
         {

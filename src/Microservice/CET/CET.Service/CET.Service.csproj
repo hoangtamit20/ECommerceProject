@@ -2,6 +2,7 @@
 
   <ItemGroup>
     <ProjectReference Include="..\CET.Domain\CET.Domain.csproj" />
+    <ProjectReference Include="..\..\..\Database\Database.csproj" />
   </ItemGroup>
 
   <PropertyGroup>

@@ -1,6 +1,5 @@
 using System.ComponentModel.DataAnnotations;
 using System.ComponentModel.DataAnnotations.Schema;
-using Core.Domain.Enums.Payments;
 using Core.Domain.Extensions.JsonSerialized;
 
 namespace Core.Domain

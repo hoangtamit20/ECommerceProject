@@ -4,11 +4,13 @@ using Microsoft.EntityFrameworkCore;
 
 namespace Database.DbContexts
 {
-    internal class CETDbContext : IdentityDbContext<UserEntity>
+    internal sealed class CETDbContext : IdentityDbContext<UserEntity>
     {
         public CETDbContext(DbContextOptions<CETDbContext> options) : base(options)
         {
         }
+
+        public DbSet<CustomerEntity> Customers { get; set; }
 
         protected override void OnModelCreating(ModelBuilder builder)
         {
