@@ -4,13 +4,14 @@ using Microsoft.EntityFrameworkCore;
 
 namespace Database.DbContexts
 {
-    internal sealed class CETDbContext : IdentityDbContext<UserEntity>
+    internal sealed class CETDbContext : IdentityDbContext<UserEntity, RoleEntity, string>
     {
         public CETDbContext(DbContextOptions<CETDbContext> options) : base(options)
         {
         }
 
         public DbSet<CustomerEntity> Customers { get; set; }
+        public DbSet<LinkHelperEntity> LinkHelpers { get; set; }
 
         protected override void OnModelCreating(ModelBuilder builder)
         {
@@ -19,7 +20,7 @@ namespace Database.DbContexts
             {
                 if (entityType.GetTableName()!.StartsWith("AspNet"))
                 {
-                    entityType.SetTableName($"CET_{entityType.GetTableName()?.Substring(6)}");
+                    entityType.SetTableName($"CET_{entityType.GetTableName()?.Substring(6).TrimEnd('s')}");
                 }
             });
         }

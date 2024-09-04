@@ -6,26 +6,40 @@ namespace Core.Domain
 {
     public class UserEntity : IdentityUser
     {
-        
+        public string FullName { get; set; } = string.Empty;
+        public DateOnly? DateOfBirth { get; set; }
         public string PIN { get; set; } = string.Empty;
         public CPINType PINType { get; set; }
-        public DateOnly? BirthDate { get; set; }
         [Column(name: "Image")]
-        private string _imageJson { get; set; } = string.Empty;
+        public string ImageJson { get; private set; } = string.Empty;
         [NotMapped]
         public List<ImageProperty> ImageProperties
         {
-            get => _imageJson.FromJson<List<ImageProperty>>() ?? new();
-            set => _imageJson = value.ToJson();
+            get => ImageJson.FromJson<List<ImageProperty>>() ?? new();
+            set => ImageJson = value.ToJson();
         }
 
         [Column(name: "Address")]
-        private string _addressJson { get; set; } = string.Empty;
+        public string AddressJson { get; private set; } = string.Empty;
         [NotMapped]
         public List<AddressProperty> AddressProperties
         {
-            get => _addressJson.FromJson<List<AddressProperty>>() ?? new();
-            set => _addressJson = value.ToJson();
+            get => AddressJson.FromJson<List<AddressProperty>>() ?? new();
+            set => AddressJson = value.ToJson();
+        }
+        public string ModifiedBy { get; set; } = string.Empty;
+        private DateTimeOffset _createdDate = DateTimeOffset.UtcNow;
+        public DateTimeOffset CreatedDate
+        {
+            get => _createdDate.ToLocalTime();
+            private set => _createdDate = value;
+        }
+
+        private DateTimeOffset? _modifiedDate;
+        public DateTimeOffset? ModifiedDate
+        {
+            get => _modifiedDate?.ToLocalTime();
+            set => _modifiedDate = value;
         }
     }
 
@@ -62,6 +76,7 @@ namespace Core.Domain
     #region image info
     public class ImageProperty
     {
+        public string Id { get; set; } = Guid.NewGuid().ToString();
         public string BlobId { get; set; } = string.Empty;
         public string FileName { get; set; } = string.Empty;
         public string FolderName { get; set; } = string.Empty;

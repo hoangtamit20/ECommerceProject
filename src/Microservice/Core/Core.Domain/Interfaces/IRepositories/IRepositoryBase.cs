@@ -1,11 +1,14 @@
 using System.Linq.Expressions;
 using Microsoft.EntityFrameworkCore.Storage;
 
-namespace Database.Repositories
+namespace Core.Domain
 {
     public interface IRepositoryBase
     {
         Task<IDbContextTransaction> BeginTransactionAsync(CancellationToken cancellationToken = default);
+        IQueryable<T> GetSetAsTracking<T>(Expression<Func<T, bool>>? predicate = null) where T : class;
+        IQueryable<T> GetSet<T>(Expression<Func<T, bool>>? predicate = null) where T : class;
+        Task<T> UpdateAsync<T>(T entity, bool clearTracker = false, CancellationToken cancellationToken = default) where T : class;
         Task<T?> FindForUpdateAsync<T>(Expression<Func<T, bool>> predicate,
             CancellationToken cancellationToken = default) where T : class;
         Task<T?> FindAsync<T>(Expression<Func<T, bool>> predicate,

@@ -1,6 +1,6 @@
-﻿using System.Security.Claims;
-using Microsoft.AspNetCore.Http;
+﻿using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Identity;
+using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.Logging;
 
 namespace Core.Domain;
@@ -11,6 +11,18 @@ public static class RuntimeContext
     private static UserManager<UserEntity>? _userManager;
     private static ILogger? _logger;
     private static bool _isSimulated;
+    public static AppSettings AppSettings { get; private set; }
+
+    static RuntimeContext()
+    {
+        var builder = new ConfigurationBuilder()
+            .SetBasePath(Directory.GetCurrentDirectory())
+            .AddJsonFile(Path.Combine(DirectoryHelper.GetSolutionBasePath(),"config.Development.json"), optional: true, reloadOnChange: true);
+
+        var configuration = builder.Build();
+        AppSettings = new AppSettings();
+        configuration.GetSection("AppSettings").Bind(AppSettings);
+    }
 
     public static void Configure(
         IHttpContextAccessor httpContextAccessor,
@@ -51,4 +63,5 @@ public static class RuntimeContext
             return _logger;
         }
     }
+
 }

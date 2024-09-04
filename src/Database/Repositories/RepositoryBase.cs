@@ -6,7 +6,7 @@ using Microsoft.Extensions.Logging;
 
 namespace Database.Repositories
 {
-    public class RepositoryBase<TContext> : IRepositoryBase
+    internal class RepositoryBase<TContext> : IRepositoryBase
         where TContext : DbContext
     {
         private readonly TContext _context;
@@ -22,6 +22,27 @@ namespace Database.Repositories
             var transaction = await _context.Database.BeginTransactionAsync(cancellationToken);
             return transaction;
         }
+
+        #region Query
+        public IQueryable<T> GetSet<T>(Expression<Func<T, bool>>? predicate = null) where T : class
+        {
+            if (predicate == null)
+            {
+                return _context.Set<T>();
+            }
+            return _context.Set<T>().Where(predicate);
+        }
+
+        public IQueryable<T> GetSetAsTracking<T>(Expression<Func<T, bool>>? predicate = null) where T : class
+        {
+            if (predicate == null)
+            {
+                return _context.Set<T>().AsTracking();
+            }
+            return _context.Set<T>().Where(predicate).AsTracking();
+        }
+
+        #endregion
 
         public async Task<T> AddAsync<T>(T entity, bool clearTracker = false, CancellationToken cancellationToken = default)
             where T : class
@@ -130,6 +151,15 @@ namespace Database.Repositories
             // await RefreshCacheTicks<T>(true);
             return result;
         }
+
+
+        public async Task<T> UpdateAsync<T>(T entity, bool clearTracker = false, CancellationToken cancellationToken = default) where T : class
+        {
+            _context.Set<T>().Update(entity: entity);
+            await SaveChangesAsync(clearTracker, cancellationToken);
+            return entity;
+        }
+
 
         public async Task<int> SaveChangesAsync(bool clearTracker = false, CancellationToken cancellationToken = default)
         {
