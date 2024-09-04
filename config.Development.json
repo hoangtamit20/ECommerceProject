@@ -1,6 +1,0 @@
-{
-    "ConnectionStrings": {
-        "CET_Connection" : "Server=DELL\\TAMHOANG; Database=ECommerceDb; User Id=sa; UserPassword=Khuong=090217; Trusted_Connection=true; TrustServerCertificate=True;",
-        "CUS_Connection" : "Server=DELL\\TAMHOANG; Database=ECommerceDb; User Id=sa; UserPassword=Khuong=090217; Trusted_Connection=true; TrustServerCertificate=True;"
-    }
-}
