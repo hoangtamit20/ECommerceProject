@@ -22,7 +22,6 @@ builder.Services.Configure<ApiBehaviorOptions>(opt =>
 });
 
 var app = builder.Build();
-
 if (app.Environment.IsDevelopment())
 {
     app.UseSwagger();
@@ -32,6 +31,8 @@ app.UseHttpsRedirection();
 app.UseAuthentication();
 app.UseAuthorization();
 app.MapControllers();
+app.MapRuntimeContext();
 
-app.MapJwtRevocation();
+
+// app.MapJwtRevocation();
 app.Run();

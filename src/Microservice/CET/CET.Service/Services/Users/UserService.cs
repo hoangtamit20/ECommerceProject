@@ -1,7 +1,6 @@
 using CET.Domain;
 using Core.Domain;
 using Core.Domain.Enums.Roles;
-using Core.Domain.Extensions.JsonSerialized;
 using Core.Domain.Interfaces;
 using Core.Service.Models;
 using Mapster;
@@ -106,7 +105,7 @@ namespace CET.Service
                                 {
                                     Email = userEntity.Email,
                                     NeedEmailConfirm = true,
-                                    Message = "Your account registration is complete! Please check your email to confirm your registration"
+                                    Message = "Your account registration is complete! Please check your email to confirm your registration."
                                 };
                                 response.Result.Success = true;
                                 return response; 
@@ -162,20 +161,20 @@ namespace CET.Service
         }
 
 
-        public async Task<ApiResponse<string>> ConfirmedEmailAsync(string userId, string token)
+        public async Task<ApiResponse<string>> ConfirmedEmailAsync(ConfirmEmailDto confirmEmailDto, ModelStateDictionary? modelState = null)
         {
             var response = new ApiResponse<string>();
+            var errors = ErrorHelper.GetModelStateError(modelState: modelState);
 
-            if (string.IsNullOrEmpty(userId) || string.IsNullOrEmpty(token))
+            if (!errors.IsNullOrEmpty())
             {
                 response.Result.Success = false;
-                response.Result.Errors.Add(new ErrorDetail { Field = "UserId", Error = "User ID is required", ErrorScope = CErrorScope.PageSumarry });
-                response.Result.Errors.Add(new ErrorDetail { Field = "Token", Error = "Token is required", ErrorScope = CErrorScope.PageSumarry });
                 response.StatusCode = StatusCodes.Status400BadRequest;
+                response.Result.Errors = errors;
                 return response;
             }
 
-            var userExist = await _userManager.FindByIdAsync(userId);
+            var userExist = await _userManager.FindByIdAsync(confirmEmailDto.UserId);
             if (userExist == null)
             {
                 response.Result.Success = false;
@@ -184,7 +183,7 @@ namespace CET.Service
                 return response;
             }
 
-            var result = await _userManager.ConfirmEmailAsync(userExist, token);
+            var result = await _userManager.ConfirmEmailAsync(userExist, confirmEmailDto.Token);
             if (!result.Succeeded)
             {
                 response.Result.Success = false;
@@ -303,15 +302,17 @@ namespace CET.Service
                     {
                         ConfirmationLink = confirmationLink,
                         CustomerName = requestDto.FullName,
-                        ReceiverEmail = userEntity.Email ?? string.Empty,
-                        YourCompany = "Default company name"
+                        ReceiverEmail = requestDto.Email ?? string.Empty,
+                        CompanyName = RuntimeContext.AppSettings.ClientApp.CompanyName,
+                        Address = RuntimeContext.AppSettings.ClientApp.Address,
+                        OwnerPhone = RuntimeContext.AppSettings.ClientApp.OwnerPhone
                     };
 
                     await _emailService.SendEmailAsync(userEntity.Email ?? string.Empty,
                         "Confirm your email to complete your registration",
                         string.Empty, "ConfirmEmailTemplate.html",
                         emailReplaceProperty,
-                        CEmailProviderType.Gmail);
+                        CEmailProviderType.Brevo);
                     return;
                 }
                 catch (Exception ex)

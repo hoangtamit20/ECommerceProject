@@ -14,6 +14,7 @@ namespace Database.DbContexts
         public DbSet<UserRefreshTokenEntity> UserRefreshTokens { get; set; }
         public DbSet<CustomerEntity> Customers { get; set; }
         public DbSet<LinkHelperEntity> LinkHelpers { get; set; }
+        public DbSet<ActivityLogEntity> ActivityLogs { get; set; }
 
         protected override void OnModelCreating(ModelBuilder builder)
         {

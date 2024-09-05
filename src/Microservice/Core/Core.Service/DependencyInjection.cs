@@ -1,10 +1,17 @@
 ﻿using System.Reflection;
+using System.Security.Claims;
 using System.Text;
 using Core.Domain;
+using Core.Domain.Interfaces;
 using Database;
 using Microsoft.AspNetCore.Authentication.JwtBearer;
 using Microsoft.AspNetCore.Builder;
+using Microsoft.AspNetCore.Hosting;
+using Microsoft.AspNetCore.Http;
+using Microsoft.AspNetCore.Identity;
+using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.DependencyInjection;
+using Microsoft.Extensions.Hosting;
 using Microsoft.IdentityModel.JsonWebTokens;
 using Microsoft.IdentityModel.Tokens;
 using Microsoft.OpenApi.Models;
@@ -92,9 +99,14 @@ public static class DependencyInjection
             // var path = Path.Combine(AppContext.BaseDirectory, xmlFileName);
             // options.IncludeXmlComments(path);
         });
-
-        services.AddScoped<IEmailService, EmailService>();
         services.AddHttpContextAccessor();
+        // services.AddSingleton(provider =>
+        // {
+        //     RuntimeContext.SetServiceProvider(serviceProvider: provider);
+        //     return provider;
+        // });
+        services.AddScoped<IEmailService, EmailService>();
+
         return services;
     }
     public static IServiceCollection AddCETCoreService(this IServiceCollection services)
@@ -107,6 +119,35 @@ public static class DependencyInjection
     {
         services.AddCustomerDbContext();
         return services;
+    }
+
+    public static IApplicationBuilder MapRuntimeContext(this IApplicationBuilder app)
+    {
+        RuntimeContext.ServiceProvider = app.ApplicationServices;
+        app.Use(async (context, next) =>
+        {
+            // Set current user and user ID in RuntimeContext
+            var userManager = context.RequestServices.GetRequiredService<UserManager<UserEntity>>();
+            var cetRepository = context.RequestServices.GetRequiredService<ICETRepository>();
+            var httpContextAccessor = context.RequestServices.GetRequiredService<IHttpContextAccessor>();
+            var env = context.RequestServices.GetRequiredService<IWebHostEnvironment>();
+            var userId = httpContextAccessor.HttpContext?.User?.FindFirst(ClaimTypes.NameIdentifier)?.Value;
+            var endpoint = await cetRepository.GetSet<LinkHelperEntity>().FirstOrDefaultAsync();
+            if (endpoint != null)
+            {
+                RuntimeContext.Endpoint = env.IsDevelopment() ? endpoint.DevelopmentEndpoint : endpoint.ProductionEndpoint;
+            }
+            
+            if (userId != null)
+            {
+                var user = await userManager.FindByIdAsync(userId);
+                RuntimeContext.CurrentUser = user;
+                RuntimeContext.CurrentUserId = userId;
+            }
+
+            await next.Invoke();
+        });
+        return app;
     }
 
     public static IApplicationBuilder MapJwtRevocation(this IApplicationBuilder app)

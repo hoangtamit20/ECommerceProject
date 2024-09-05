@@ -1,9 +1,12 @@
 using CET.Domain;
 using Core.Domain;
+using Core.Domain.Enums.Roles;
 using Core.Domain.Interfaces;
+using Core.Service.Models;
 using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Identity;
 using Microsoft.AspNetCore.Mvc.ModelBinding;
+using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Logging;
 
 namespace CET.Service
@@ -94,7 +97,7 @@ namespace CET.Service
                         };
                         await _userManager.UpdateAsync(user: userExist);
                         await _emailService.SendEmailAsync(email: userExist.Email ?? string.Empty, subject: "TWO FACTOR AUTHENTICATION",
-                            htmlTemplate: $"Your code here : {token}", emailProviderType: CEmailProviderType.Gmail);
+                            htmlTemplate: $"Your code here : {token}", emailProviderType: CEmailProviderType.Brevo);
                         response.StatusCode = StatusCodes.Status203NonAuthoritative;
                         response.Result.Data = new LoginResponseDto()
                         {
@@ -119,7 +122,8 @@ namespace CET.Service
                     }
                 }
                 // need generate accesstoken and refreshtoken here
-                var jwtTokenModel = await _jwtService.GenerateJwtTokenAsync(userEntity: userExist, ipAddress: RuntimeContext.CurrentIpAddress ?? string.Empty);
+                var jwtTokenModel = await _jwtService.GenerateJwtTokenAsync(userEntity: userExist,
+                    ipAddress: RuntimeContext.CurrentIpAddress ?? string.Empty);
                 response.StatusCode = StatusCodes.Status200OK;
                 response.Result.Data = new LoginResponseDto()
                 {
@@ -138,6 +142,90 @@ namespace CET.Service
         }
         #endregion Login
 
+        #region refresh token
+        public async Task<ApiResponse<LoginResponseDto>> RefreshTokenAsync(RefreshTokenRequestDto refreshTokenDto,
+            ModelStateDictionary? modelState = null)
+        {
+            var response = new ApiResponse<LoginResponseDto>();
+            var errors = ErrorHelper.GetModelStateError(modelState: modelState);
+            if (!errors.IsNullOrEmpty())
+            {
+                response.StatusCode = StatusCodes.Status400BadRequest;
+                response.Result.Success = false;
+                response.Result.Errors = errors;
+                return response;
+            }
+            var currentUser = RuntimeContext.CurrentUser;
+            if (currentUser == null)
+            {
+                errors.Add(new ErrorDetail()
+                {
+                    Error = $"You don't have permission to request refresh token.",
+                    ErrorScope = CErrorScope.Global
+                });
+                response.StatusCode = StatusCodes.Status401Unauthorized;
+                response.Result.Success = false;
+                response.Result.Errors = errors;
+                return response;
+            }
+            var userRefreshTokenExist = await _cetRepository.GetSet<UserRefreshTokenEntity>(usr => 
+                usr.UserId == currentUser.Id && usr.RefreshToken == refreshTokenDto.RefreshToken).FirstOrDefaultAsync();
+            if (userRefreshTokenExist == null)
+            {
+                errors.Add(new ErrorDetail()
+                {
+                    Error = $"Refresh token '{refreshTokenDto.RefreshToken}' of user '{currentUser.Email}' not found.",
+                    ErrorScope = CErrorScope.PageSumarry
+                });
+                response.StatusCode = StatusCodes.Status401Unauthorized;
+                response.Result.Success = false;
+                response.Result.Errors = errors;
+                return response;
+            }
+            if (userRefreshTokenExist.IsRevoked || !userRefreshTokenExist.Active)
+            {
+                errors.Add(new ErrorDetail()
+                {
+                    Error = $"Refresh token '{refreshTokenDto.RefreshToken}' has expired or revoked",
+                    ErrorScope = CErrorScope.PageSumarry
+                });
+                response.StatusCode = StatusCodes.Status419AuthenticationTimeout;
+                response.Result.Success = false;
+                response.Result.Errors = errors;
+                return response;
+            }
+            // generate new accesstoken
+            try
+            {
+                var accessToken = await _jwtService.GenerateJwtAccessTokenAsync(userEntity: currentUser);
+                userRefreshTokenExist.AccessToken = accessToken;
+                await _cetRepository.UpdateAsync<UserRefreshTokenEntity>(entity: userRefreshTokenExist);
+                response.StatusCode = StatusCodes.Status200OK;
+                response.Result.Success = true;
+                response.Result.Data = new LoginResponseDto()
+                {
+                    AccessToken = accessToken,
+                    RefreshToken = refreshTokenDto.RefreshToken,
+                    Message = $"Refresh new access token successfully.",
+                    TwoFactorEnabled = false
+                };
+                return response;
+            }
+            catch(Exception ex)
+            {
+                _logger.LogError($"{ex.Message}");
+                errors.Add(new ErrorDetail()
+                {
+                    Error = $"An error occured while generate access token for user : '{currentUser.Email}'",
+                    ErrorScope = CErrorScope.Global
+                });
+                response.Result.Success = false;
+                response.StatusCode = StatusCodes.Status500InternalServerError;
+                response.Result.Errors = errors;
+                return response;
+            }
+        }
+        #endregion refresh token
 
         #region Confirm two factor authentication
         public async Task<ApiResponse<LoginResponseDto>> ConfirmTwoFactorAuthenticationAsync(
@@ -232,5 +320,130 @@ namespace CET.Service
             return response;
         }
         #endregion confirm two factor authentication
+
+        #region register
+        public async Task<ApiResponse<RegisterResponsetDto>> RegisterAsync(RegisterRequestDto registerDto,
+            ModelStateDictionary? modelState = null)
+        {
+            var errors = ErrorHelper.GetModelStateError(modelState: modelState);
+            var response = new ApiResponse<RegisterResponsetDto>();
+            if (!errors.IsNullOrEmpty())
+            {
+                response.StatusCode = StatusCodes.Status400BadRequest;
+                response.Result.Success = false;
+                response.Result.Errors = errors;
+                return response;
+            }
+            var userExist = await _userManager.FindByEmailAsync(email: registerDto.Email);
+            if (userExist != null)
+            {
+                errors.Add(new ErrorDetail()
+                {
+                    Error = $"User '{registerDto.Email}' already taken",
+                    ErrorScope = CErrorScope.Field,
+                    Field = $"{nameof(RegisterRequestDto.Email)}_Error"
+                });
+                response.StatusCode = StatusCodes.Status409Conflict;
+                response.Result.Success = false;
+                response.Result.Errors = errors;
+                return response;
+            }
+            var roleExist = await _roleManager.FindByNameAsync(roleName: CRoleType.NormalUser.ToString());
+            if (roleExist == null)
+            {
+                // create role :
+                await _roleManager.CreateAsync(role: new RoleEntity()
+                {
+                    Name = CRoleType.NormalUser.ToString()
+                });
+            }
+            // create user
+            userExist = new UserEntity()
+            {
+                Email = registerDto.Email,
+                UserName = registerDto.Email
+            };
+            using (var dbTransaction = await _cetRepository.BeginTransactionAsync())
+            {
+                var createUserResult = await _userManager.CreateAsync(user: userExist, password: registerDto.Password);
+                if (!createUserResult.Succeeded)
+                {
+                    await dbTransaction.RollbackAsync();
+                    errors.Add(new ErrorDetail()
+                    {
+                        Error = string.Join(Environment.NewLine, createUserResult.Errors.Select(err => err.Description).ToList()),
+                        ErrorScope = CErrorScope.FormSummary,
+                    });
+                    response.StatusCode = StatusCodes.Status503ServiceUnavailable;
+                    response.Result.Success = false;
+                    response.Result.Errors = errors;
+                    return response;
+                }
+                // assign role
+                var addRoleResult = await _userManager.AddToRoleAsync(user: userExist, role: CRoleType.NormalUser.ToString());
+                if (!addRoleResult.Succeeded)
+                {
+                    await dbTransaction.RollbackAsync();
+                    errors.Add(new ErrorDetail()
+                    {
+                        Error = string.Join(Environment.NewLine, addRoleResult.Errors.Select(err => err.Description).ToList()),
+                        ErrorScope = CErrorScope.FormSummary,
+                    });
+                    response.StatusCode = StatusCodes.Status503ServiceUnavailable;
+                    response.Result.Success = false;
+                    response.Result.Errors = errors;
+                    return response;
+                }
+                // send email to user:
+                try
+                {
+                    var token = await _userManager.GenerateEmailConfirmationTokenAsync(user: userExist);
+                    var confirmationLink = LinkHelper.GenerateEmailConfirmationUrl(endpoint: RuntimeContext.Endpoint ?? string.Empty,
+                        relatedUrl: EmailEndpoint.REGISTRAION_CONFIRM_ENDPOINT,
+                        userId: userExist.Id, token: token).ToString();
+
+                    var emailReplaceProperty = new ConfirmEmailTemplateModel
+                    {
+                        ConfirmationLink = confirmationLink,
+                        CustomerName = registerDto.FullName,
+                        ReceiverEmail = userExist.Email ?? string.Empty,
+                        CompanyName = RuntimeContext.AppSettings.ClientApp.CompanyName,
+                        Address = RuntimeContext.AppSettings.ClientApp.Address,
+                        OwnerName = RuntimeContext.AppSettings.ClientApp.OwnerName,
+                        OwnerPhone = RuntimeContext.AppSettings.ClientApp.OwnerPhone
+                    };
+                    await _emailService.SendEmailAsync(userExist.Email ?? string.Empty,
+                        "Confirm your email to complete your registration",
+                        string.Empty, "ConfirmEmailTemplate.html",
+                        emailReplaceProperty,
+                        CEmailProviderType.Brevo);
+
+                    await dbTransaction.CommitAsync();
+                    response.StatusCode = StatusCodes.Status202Accepted;
+                    response.Result.Success = true;
+                    response.Result.Data = new RegisterResponsetDto()
+                    {
+                        Email = userExist.Email ?? string.Empty,
+                        Message = "Your account registration is complete! Please check your email to confirm your registration."
+                    };
+                    return response;
+                }
+                catch(Exception ex)
+                {
+                    _logger.LogError(ex.Message);
+                    errors.Add(new ErrorDetail()
+                    {
+                        Error = "An error occured while send email to confirmation registration.",
+                        ErrorScope = CErrorScope.PageSumarry
+                    });
+                    await dbTransaction.RollbackAsync();
+                    response.StatusCode = StatusCodes.Status500InternalServerError;
+                    response.Result.Errors = errors;
+                    response.Result.Success = false;
+                    return response;
+                }
+            }
+        }
+        #endregion register        
     }
 }

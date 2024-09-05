@@ -1,4 +1,5 @@
 using Core.Domain;
+using Core.Domain.Enums.Roles;
 using Core.Domain.Interfaces;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
@@ -29,7 +30,7 @@ namespace CET.API.Controllers
         }
 
 
-        [Authorize]
+        // [Authorize]
         [HttpPost]
         public async Task<IActionResult> AddUrlEndpoint(string developmentEndpoint, string productionEndpoint)
         {

@@ -1,33 +1,77 @@
 ﻿using Microsoft.AspNetCore.Http;
+using Microsoft.AspNetCore.Identity;
 using Microsoft.Extensions.Configuration;
+using Microsoft.Extensions.DependencyInjection;
+using System.Security.Claims;
+using System.Threading;
+using System.Threading.Tasks;
 
-namespace Core.Domain;
-
-public static class RuntimeContext
+namespace Core.Domain
 {
-    private static IHttpContextAccessor? _httpContextAccessor;
-    public static AppSettings AppSettings { get; private set; }
-
-    static RuntimeContext()
+    public static class RuntimeContext
     {
-        var builder = new ConfigurationBuilder()
-            .SetBasePath(Directory.GetCurrentDirectory())
-            .AddJsonFile(Path.Combine(DirectoryHelper.GetSolutionBasePath(), "config.Development.json"), optional: true, reloadOnChange: true);
+        public static AppSettings AppSettings { get; private set; }
+        private static AsyncLocal<UserEntity?> _currentUser = new AsyncLocal<UserEntity?>();
+        private static AsyncLocal<string?> _currentUserId = new AsyncLocal<string?>();
+        private static AsyncLocal<string?> _endpoint = new AsyncLocal<string?>();
+        public static IServiceProvider? ServiceProvider { get; set; }
 
-        var configuration = builder.Build();
-        AppSettings = new AppSettings();
-        configuration.GetSection("AppSettings").Bind(AppSettings);
-    }
 
-    public static string? CurrentIpAddress
-    {
-        get
+        static RuntimeContext()
         {
-            if (_httpContextAccessor!= null && _httpContextAccessor.HttpContext?.Connection?.RemoteIpAddress != null)
+            var builder = new ConfigurationBuilder()
+                .SetBasePath(Directory.GetCurrentDirectory())
+                .AddJsonFile(Path.Combine(DirectoryHelper.GetSolutionBasePath(), "config.Development.json"), optional: true, reloadOnChange: true);
+
+            var configuration = builder.Build();
+            AppSettings = new AppSettings();
+            configuration.GetSection("AppSettings").Bind(AppSettings);
+        }
+
+        public static string? CurrentIpAddress
+        {
+            get
             {
-                return _httpContextAccessor.HttpContext.Connection.RemoteIpAddress.ToString();
+                var httpContextAccessor = ServiceProvider?.GetRequiredService<IHttpContextAccessor>();
+                var ipAddress = httpContextAccessor?.HttpContext?.Connection?.RemoteIpAddress?.ToString();
+                return ipAddress;
             }
-            return null;
+        }
+
+        public static UserEntity? CurrentUser
+        {
+            get
+            {
+                return _currentUser.Value;
+            }
+            set
+            {
+                _currentUser.Value = value;
+            }
+        }
+
+        public static string? CurrentUserId
+        {
+            get
+            {
+                return _currentUserId.Value;
+            }
+            set
+            {
+                _currentUserId.Value = value;
+            }
+        }
+
+        public static string? Endpoint 
+        {
+           get
+            {
+                return _endpoint.Value;
+            }
+            set
+            {
+                _endpoint.Value = value;
+            }
         }
     }
 }
