@@ -10,6 +10,8 @@ namespace Core.Domain
         public DateOnly? DateOfBirth { get; set; }
         public string PIN { get; set; } = string.Empty;
         public CPINType PINType { get; set; }
+
+        #region Json property
         [Column(name: "Image")]
         public string ImageJson { get; private set; } = string.Empty;
         [NotMapped]
@@ -27,6 +29,18 @@ namespace Core.Domain
             get => AddressJson.FromJson<List<AddressProperty>>() ?? new();
             set => AddressJson = value.ToJson();
         }
+
+        [Column(name: "TwoFactorProperty")]
+        public string? TwoFactorPropertyJson { get; private set; } = null;
+        [NotMapped]
+        public TwoFactorTokenProperty? TwoFactorTokenProperty
+        {
+            get => TwoFactorPropertyJson?.FromJson<TwoFactorTokenProperty>() ?? null;
+            set => TwoFactorPropertyJson = value?.ToJson() ?? null;
+        }
+
+        #endregion Json property
+        
         public string ModifiedBy { get; set; } = string.Empty;
         private DateTimeOffset _createdDate = DateTimeOffset.UtcNow;
         public DateTimeOffset CreatedDate
@@ -41,6 +55,11 @@ namespace Core.Domain
             get => _modifiedDate?.ToLocalTime();
             set => _modifiedDate = value;
         }
+
+        #region Inverse property
+        [InverseProperty(property: "User")]
+        public virtual ICollection<UserRefreshTokenEntity> UserRefreshTokens { get; set; } = new List<UserRefreshTokenEntity>();
+        #endregion Inverse property
     }
 
     #region address property
@@ -96,5 +115,15 @@ namespace Core.Domain
     }
     #endregion image info
 
-    
+
+    #region Two factor authentication info property
+    public class TwoFactorTokenProperty
+    {
+        public string TwoFactorToken { get; set; } = string.Empty;
+        public bool IsTokenInvoked { get; set; } = false;
+        public DateTimeOffset TokenExpiration { get; set; }
+    }
+    #endregion Two factor authentication info property
+
+
 }

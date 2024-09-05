@@ -133,8 +133,8 @@ namespace Database.Repositories
         public async Task<int> DeleteAsync<T>(T entity, bool clearTracker = false, CancellationToken cancellationToken = default)
             where T : class
         {
-            CheckSimulated();
-            RuntimeContext.Logger.LogDebug($"Delete entity {typeof(T)}.");
+            // CheckSimulated();
+            // RuntimeContext.Logger.LogDebug($"Delete entity {typeof(T)}.");
             _context.Set<T>().Remove(entity);
             var result = await SaveChangesAsync(clearTracker, cancellationToken);
             // await RefreshCacheTicks<T>(true);
@@ -144,8 +144,8 @@ namespace Database.Repositories
         public async Task<int> DeleteRangeAsync<T>(IEnumerable<T> entities, bool clearTracker = false,
             CancellationToken cancellationToken = default) where T : class
         {
-            CheckSimulated();
-            RuntimeContext.Logger.LogDebug($"Delete entity range {typeof(T)}.");
+            // CheckSimulated();
+            // RuntimeContext.Logger.LogDebug($"Delete entity range {typeof(T)}.");
             _context.Set<T>().RemoveRange(entities);
             var result = await SaveChangesAsync(clearTracker, cancellationToken);
             // await RefreshCacheTicks<T>(true);
@@ -163,7 +163,7 @@ namespace Database.Repositories
 
         public async Task<int> SaveChangesAsync(bool clearTracker = false, CancellationToken cancellationToken = default)
         {
-            CheckSimulated();
+            // CheckSimulated();
             var result = await _context.SaveChangesAsync(cancellationToken);
             if (clearTracker)
             {
@@ -172,12 +172,12 @@ namespace Database.Repositories
             return result;
         }
 
-        private void CheckSimulated()
-        {
-            if (RuntimeContext.IsSimulated)
-            {
-                throw new SimulationNoAuthException();
-            }
-        }
+        // private void CheckSimulated()
+        // {
+        //     if (RuntimeContext.IsSimulated)
+        //     {
+        //         throw new SimulationNoAuthException();
+        //     }
+        // }
     }
 }

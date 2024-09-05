@@ -5,5 +5,6 @@ namespace Core.Domain
         public ConnectionStrings ConnectionStrings { get; set; } = null!;
         public ClientApp ClientApp { get; set; } = null!;
         public EmailSetting EmailSetting { get; set; } = null!;
+        public JwtSetting JwtSetting { get; set; } = null!;
     }
 }

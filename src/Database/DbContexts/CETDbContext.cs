@@ -10,6 +10,8 @@ namespace Database.DbContexts
         {
         }
 
+
+        public DbSet<UserRefreshTokenEntity> UserRefreshTokens { get; set; }
         public DbSet<CustomerEntity> Customers { get; set; }
         public DbSet<LinkHelperEntity> LinkHelpers { get; set; }
 

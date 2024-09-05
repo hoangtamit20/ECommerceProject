@@ -1,5 +1,6 @@
 using Core.Domain;
 using Core.Domain.Interfaces;
+using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
 
@@ -21,6 +22,7 @@ namespace CET.API.Controllers
         }
 
         [HttpGet]
+        [Authorize]
         public async Task<IActionResult> GetLinkHelpers()
         {
             return Ok(await _cETRepository.GetSet<LinkHelperEntity>().ToListAsync());

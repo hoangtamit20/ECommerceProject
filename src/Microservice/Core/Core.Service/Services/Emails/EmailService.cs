@@ -1,5 +1,6 @@
 using Core.Domain;
 using MailKit.Net.Smtp;
+using MailKit.Security;
 using Microsoft.Extensions.Logging;
 using MimeKit;
 using MimeKit.Text;
@@ -74,9 +75,14 @@ namespace Core.Service
                 try
                 {
                     _logger.LogInformation("Connecting to SMTP server {Server} on port {Port}.", smtpSettings.Server, smtpSettings.Port);
-
+                    // var options = new SecureSocketOptions
+                    // {
+                    //     // Disable revocation checks
+                    //     CheckCertificateRevocation = false
+                    // };
                     // Use SecureSocketOptions.StartTls for port 587
-                    await client.ConnectAsync(smtpSettings.Server, smtpSettings.Port, MailKit.Security.SecureSocketOptions.StartTls);
+                    client.ServerCertificateValidationCallback = (sender, certificate, chain, sslPolicyErrors) => true;
+                    await client.ConnectAsync(smtpSettings.Server, smtpSettings.Port, SecureSocketOptions.StartTls);
                     _logger.LogInformation("Connected to SMTP server successfully.");
 
                     _logger.LogInformation("Authenticating with SMTP server using username {Username}.", smtpSettings.Username);

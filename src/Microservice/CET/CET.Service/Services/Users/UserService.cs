@@ -1,6 +1,7 @@
 using CET.Domain;
 using Core.Domain;
 using Core.Domain.Enums.Roles;
+using Core.Domain.Extensions.JsonSerialized;
 using Core.Domain.Interfaces;
 using Core.Service.Models;
 using Mapster;
@@ -93,13 +94,37 @@ namespace CET.Service
                                 await SendEmailConfirmationAsync(userEntity, requestDto, errorList);
                                 if (!errorList.IsNullOrEmpty())
                                 {
+                                    await dbTransaction.RollbackAsync();
                                     response.StatusCode = StatusCodes.Status503ServiceUnavailable;
                                     response.Result.Errors = errorList;
                                     response.Result.Success = false;
+                                    return response;
                                 }
+                                await dbTransaction.CommitAsync();
+                                response.StatusCode = StatusCodes.Status202Accepted;
+                                response.Result.Data = new CreateUserResponseDto()
+                                {
+                                    Email = userEntity.Email,
+                                    NeedEmailConfirm = true,
+                                    Message = "Your account registration is complete! Please check your email to confirm your registration"
+                                };
+                                response.Result.Success = true;
+                                return response; 
                             }
+                            await dbTransaction.CommitAsync();
                         }
-                        await dbTransaction.CommitAsync();
+                        else
+                        {
+                            await dbTransaction.RollbackAsync();
+                            errorList.Add(new ErrorDetail()
+                            {
+                                Error = string.Join(Environment.NewLine, result.Errors.Select(err => err.Description).ToList()),
+                                ErrorScope = CErrorScope.FormSummary,
+                            });
+                            response.StatusCode = StatusCodes.Status503ServiceUnavailable;
+                            response.Result.Success = false;
+                            response.Result.Errors = errorList;
+                        }
                     }
                     catch (Exception ex)
                     {
@@ -115,8 +140,13 @@ namespace CET.Service
                         response.Result.Errors = errorList;
                     }
                 }
-                response.StatusCode = StatusCodes.Status202Accepted;
-                response.Result.Data = userEntity.Adapt<CreateUserResponseDto>();
+                response.StatusCode = StatusCodes.Status201Created;
+                response.Result.Data = new CreateUserResponseDto()
+                {
+                    Email = userEntity.Email,
+                    NeedEmailConfirm = false,
+                    Message = $"Account has been create successfully"
+                };
                 response.Result.Success = true;
                 return response;
             }
@@ -281,7 +311,8 @@ namespace CET.Service
                         "Confirm your email to complete your registration",
                         string.Empty, "ConfirmEmailTemplate.html",
                         emailReplaceProperty,
-                        CEmailProviderType.Brevo);
+                        CEmailProviderType.Gmail);
+                    return;
                 }
                 catch (Exception ex)
                 {

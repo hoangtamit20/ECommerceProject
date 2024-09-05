@@ -1,67 +1,33 @@
 ﻿using Microsoft.AspNetCore.Http;
-using Microsoft.AspNetCore.Identity;
 using Microsoft.Extensions.Configuration;
-using Microsoft.Extensions.Logging;
 
 namespace Core.Domain;
 
 public static class RuntimeContext
 {
     private static IHttpContextAccessor? _httpContextAccessor;
-    private static UserManager<UserEntity>? _userManager;
-    private static ILogger? _logger;
-    private static bool _isSimulated;
     public static AppSettings AppSettings { get; private set; }
 
     static RuntimeContext()
     {
         var builder = new ConfigurationBuilder()
             .SetBasePath(Directory.GetCurrentDirectory())
-            .AddJsonFile(Path.Combine(DirectoryHelper.GetSolutionBasePath(),"config.Development.json"), optional: true, reloadOnChange: true);
+            .AddJsonFile(Path.Combine(DirectoryHelper.GetSolutionBasePath(), "config.Development.json"), optional: true, reloadOnChange: true);
 
         var configuration = builder.Build();
         AppSettings = new AppSettings();
         configuration.GetSection("AppSettings").Bind(AppSettings);
     }
 
-    public static void Configure(
-        IHttpContextAccessor httpContextAccessor,
-        UserManager<UserEntity> userManager,
-        ILogger logger,
-        bool isSimulated = false)
-    {
-        _httpContextAccessor = httpContextAccessor;
-        _userManager = userManager;
-        _isSimulated = isSimulated;
-        _logger = logger;
-    }
-
-    public static UserEntity? CurrentUser
+    public static string? CurrentIpAddress
     {
         get
         {
-            if (_userManager != null && _httpContextAccessor != null)
-                return _userManager.GetUserAsync(_httpContextAccessor.HttpContext.User).Result;
+            if (_httpContextAccessor!= null && _httpContextAccessor.HttpContext?.Connection?.RemoteIpAddress != null)
+            {
+                return _httpContextAccessor.HttpContext.Connection.RemoteIpAddress.ToString();
+            }
             return null;
         }
     }
-
-    public static bool IsSimulated
-    {
-        get => _isSimulated;
-        set => _isSimulated = value;
-    }
-
-    public static ILogger Logger
-    {
-        get
-        {
-            if (_logger == null)
-            {
-                throw new InvalidOperationException("Logger has not been configured.");
-            }
-            return _logger;
-        }
-    }
-
 }
