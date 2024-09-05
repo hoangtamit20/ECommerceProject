@@ -28,6 +28,8 @@ namespace CET.API.Controllers
             return Ok(await _cETRepository.GetSet<LinkHelperEntity>().ToListAsync());
         }
 
+
+        [Authorize]
         [HttpPost]
         public async Task<IActionResult> AddUrlEndpoint(string developmentEndpoint, string productionEndpoint)
         {
