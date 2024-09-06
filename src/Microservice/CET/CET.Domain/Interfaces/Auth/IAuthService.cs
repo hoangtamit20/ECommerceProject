@@ -12,5 +12,7 @@ namespace CET.Domain
             ModelStateDictionary? modelState = null);
         Task<ApiResponse<RegisterResponsetDto>> RegisterAsync(RegisterRequestDto registerDto,
             ModelStateDictionary? modelState = null);
+        Task<ApiResponse<ResultMessage>> RequestResetPasswordAsync(
+            ResetPasswordRequestDto resetPasswordDto, ModelStateDictionary? modelState = null);
     }
 }

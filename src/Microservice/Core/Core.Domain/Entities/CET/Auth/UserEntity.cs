@@ -30,14 +30,14 @@ namespace Core.Domain
             set => AddressJson = value.ToJson();
         }
 
-        [Column(name: "TwoFactorProperty")]
-        public string? TwoFactorPropertyJson { get; private set; } = null;
-        [NotMapped]
-        public TwoFactorTokenProperty? TwoFactorTokenProperty
-        {
-            get => TwoFactorPropertyJson?.FromJson<TwoFactorTokenProperty>() ?? null;
-            set => TwoFactorPropertyJson = value?.ToJson() ?? null;
-        }
+        // [Column(name: "TwoFactorProperty")]
+        // public string? TwoFactorPropertyJson { get; private set; } = null;
+        // [NotMapped]
+        // public TokenProperty? TokenProperty
+        // {
+        //     get => TwoFactorPropertyJson?.FromJson<TokenProperty>() ?? null;
+        //     set => TwoFactorPropertyJson = value?.ToJson() ?? null;
+        // }
 
         #endregion Json property
         
@@ -114,16 +114,4 @@ namespace Core.Domain
         }
     }
     #endregion image info
-
-
-    #region Two factor authentication info property
-    public class TwoFactorTokenProperty
-    {
-        public string TwoFactorToken { get; set; } = string.Empty;
-        public bool IsTokenInvoked { get; set; } = false;
-        public DateTimeOffset TokenExpiration { get; set; }
-    }
-    #endregion Two factor authentication info property
-
-
 }

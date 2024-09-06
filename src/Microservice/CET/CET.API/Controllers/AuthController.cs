@@ -55,5 +55,13 @@ namespace CET.API.Controllers
             var result = await _userService.ConfirmedEmailAsync(confirmEmailDto: confirmEmailDto, modelState: ModelState);
             return StatusCode(statusCode: result.StatusCode, value: result.Result);
         }
+
+
+        [HttpPost("requestresetpassword")]
+        public async Task<IActionResult> RequestResetPassword(ResetPasswordRequestDto passwordRequestDto)
+        {
+            var result = await _authService.RequestResetPasswordAsync(resetPasswordDto: passwordRequestDto, modelState: ModelState);
+            return StatusCode(statusCode: result.StatusCode, value: result.Result);
+        }
     }
 }

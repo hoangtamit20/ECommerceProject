@@ -1,5 +1,6 @@
 using CET.Domain;
 using Core.Domain;
+using Core.Domain.Entities.CET.Auth;
 using Core.Domain.Enums.Roles;
 using Core.Domain.Interfaces;
 using Core.Service.Models;
@@ -444,6 +445,152 @@ namespace CET.Service
                 }
             }
         }
-        #endregion register        
+        #endregion register
+
+        #region Reset password
+        public async Task<ApiResponse<ResultMessage>> RequestResetPasswordAsync(
+            ResetPasswordRequestDto resetPasswordDto, ModelStateDictionary? modelState = null)
+        {
+            var errors = ErrorHelper.GetModelStateError(modelState: modelState);
+            var response = new ApiResponse<ResultMessage>();
+            if (!errors.IsNullOrEmpty())
+            {
+                response.StatusCode = StatusCodes.Status400BadRequest;
+                response.Result.Success = false;
+                response.Result.Errors = errors;
+                return response;
+            }
+            var userExist = await _userManager.FindByEmailAsync(email: resetPasswordDto.Email);
+            if (userExist == null)
+            {
+                errors.Add(new ErrorDetail()
+                {
+                    Error = $"User '{resetPasswordDto.Email}' not exist.",
+                    ErrorScope = CErrorScope.Field,
+                    Field = $"{nameof(ResetPasswordRequestDto.Email)}_Error"
+                });
+                response.StatusCode = StatusCodes.Status404NotFound;
+                response.Result.Success = false;
+                response.Result.Errors = errors;
+                return response;
+            }
+            try
+            {
+                var token = await _userManager.GeneratePasswordResetTokenAsync(user: userExist);
+                var confirmationLink = LinkHelper.GenerateEmailConfirmationUrl(endpoint: RuntimeContext.Endpoint ?? string.Empty,
+                        relatedUrl: EmailEndpoint.RESET_PASSWORD_CONFIRM_ENDPOINT,
+                        userId: userExist.Id, token: token).ToString();
+                var appInfo = RuntimeContext.AppSettings.ClientApp;
+                var emailReplaceProperty = new ResetPasswordEmailTemplateModel()
+                {
+                    Address = appInfo.Address,
+                    CompanyName = appInfo.CompanyName,
+                    CustomerName = userExist.FullName,
+                    Email = appInfo.Email,
+                    ReceiverEmail = userExist.Email ?? string.Empty,
+                    OwnerName = appInfo.OwnerName,
+                    OwnerPhone = appInfo.OwnerPhone
+                };
+                await _emailService.SendEmailAsync(email: userExist.Email ?? string.Empty,
+                    subject: "RESET PASSWORD REQUEST",
+                    htmlTemplate: string.Empty,
+                    fileTemplateName: "ResetPasswordTemplate.html",
+                    replaceProperty: emailReplaceProperty,
+                    emailProviderType: CEmailProviderType.Brevo);
+                var userTokenEntity = new UserTokenEntity()
+                {
+                    Value = token,
+                    Type = CTokenType.PasswordReset,
+                    TokenExpiration = DateTimeOffset.UtcNow.AddMinutes(5),
+                    IsTokenInvoked = false,
+                    Name = CTokenType.PasswordReset.ToDescription(),
+                    UserId = userExist.Id
+                };
+                await _cetRepository.UpdateAsync<UserTokenEntity>(entity: userTokenEntity);
+
+                response.StatusCode = StatusCodes.Status202Accepted;
+                response.Result.Success = true;
+                response.Result.Data = new ResultMessage()
+                {
+                    Success = true,
+                    Message = $"A password reset link has been sent to your email address. Please check your inbox and follow the instructions to reset your password."
+                };
+                return response;
+            }
+            catch(Exception ex)
+            {
+                _logger.LogError(ex.Message);
+                errors.Add(new ErrorDetail()
+                {
+                    Error = $"An error ocurred while generate token and send email confirm reset password.",
+                    ErrorScope = CErrorScope.Global
+                });
+                response.StatusCode = StatusCodes.Status500InternalServerError;
+                response.Result.Success = false;
+                response.Result.Errors = errors;
+                return response;
+            }
+        }
+
+        public async Task<ApiResponse<ResultMessage>> ConfirmResetPasswordAsync(ConfirmResetPasswordRequestDto confirmDto, ModelStateDictionary? modelState = null)
+        {
+            var errors = ErrorHelper.GetModelStateError(modelState: modelState);
+            var response = new ApiResponse<ResultMessage>();
+            if (!errors.IsNullOrEmpty())
+            {
+                response.StatusCode = StatusCodes.Status400BadRequest;
+                response.Result.Success = false;
+                response.Result.Errors = errors;
+                return response;
+            }
+            var userExist = await _userManager.FindByIdAsync(userId: confirmDto.UserId);
+            if (userExist == null)
+            {
+                errors.Add(new ErrorDetail()
+                {
+                    Error = "User not found's",
+                    ErrorScope = CErrorScope.PageSumarry,
+                });
+                response.StatusCode = StatusCodes.Status404NotFound;
+                response.Result.Errors = errors;
+                response.Result.Success = false;
+                return response;
+            }
+            var checkTokenResult = await _userManager.ResetPasswordAsync(user: userExist, token: confirmDto.Token, newPassword: confirmDto.NewPassword);
+            var userToken = await _cetRepository.GetSet<UserTokenEntity>(ut => ut.Value == confirmDto.Token && ut.UserId == userExist.Id).FirstOrDefaultAsync();
+            if (!checkTokenResult.Succeeded)
+            {
+                string errorMessage = string.Empty;
+                if (userToken == null)
+                {
+                    errorMessage = "Token is invalid";
+                }
+                else if (userToken != null && userToken.IsTokenInvoked)
+                {
+                    errorMessage = "Token has been used.";
+                }
+                else
+                {
+                    errorMessage = "Token expired";
+                }
+                errors.Add(new ErrorDetail()
+                {
+                    Error = errorMessage,
+                    ErrorScope = CErrorScope.PageSumarry
+                });
+                return response;
+            }
+            userToken!.IsTokenInvoked = true;
+            await _cetRepository.UpdateAsync<UserTokenEntity>(entity: userToken);
+            response.Result.Success = true;
+            response.Result.Data = new ResultMessage()
+            {
+                Success = true,
+                Message = "Reset password reset successfully"
+            };
+            response.StatusCode = StatusCodes.Status200OK;
+            return response;
+        }
+        #endregion Reset password
     }
 }
