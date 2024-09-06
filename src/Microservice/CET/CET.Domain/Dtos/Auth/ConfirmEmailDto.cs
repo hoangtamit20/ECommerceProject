@@ -11,4 +11,6 @@ namespace CET.Domain
         [Required(ErrorMessage = "{0} is required.")]
         public string Token { get; set; } = string.Empty;
     }
+
+    
 }

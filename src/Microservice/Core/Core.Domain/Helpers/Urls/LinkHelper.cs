@@ -19,5 +19,34 @@ namespace Core.Domain
             return uriBuilder.Uri;
         }
 
+        public static string? DecodeTokenFromUrl(string tokenFromUrl)
+        {
+            try
+            {
+                // Check if the token is not null or empty
+                if (string.IsNullOrEmpty(tokenFromUrl))
+                {
+                    return null;
+                }
+
+                // Check if the token contains any special characters
+                if (tokenFromUrl.IndexOfAny(new char[] { '+', '%', '&' }) >= 0)
+                {
+                    // Decode the token using HttpUtility.UrlDecode
+                    // string decodedToken = HttpUtility.UrlDecode(tokenFromUrl);
+                    string decodedToken = Uri.UnescapeDataString(tokenFromUrl);
+                    System.Console.WriteLine($"TOKEN HERE : {tokenFromUrl}");
+                    return decodedToken;
+                }
+                return tokenFromUrl;
+            }
+            catch (Exception ex)
+            {
+                // Log the error message
+                System.Console.WriteLine(ex.Message);
+                return null;
+            }
+        }
+
     }
 }

@@ -1,4 +1,5 @@
 using System.ComponentModel.DataAnnotations.Schema;
+using Core.Domain.Entities.CET.Auth;
 using Core.Domain.Extensions.JsonSerialized;
 using Microsoft.AspNetCore.Identity;
 
@@ -29,18 +30,14 @@ namespace Core.Domain
             get => AddressJson.FromJson<List<AddressProperty>>() ?? new();
             set => AddressJson = value.ToJson();
         }
-
-        // [Column(name: "TwoFactorProperty")]
-        // public string? TwoFactorPropertyJson { get; private set; } = null;
-        // [NotMapped]
-        // public TokenProperty? TokenProperty
-        // {
-        //     get => TwoFactorPropertyJson?.FromJson<TokenProperty>() ?? null;
-        //     set => TwoFactorPropertyJson = value?.ToJson() ?? null;
-        // }
-
         #endregion Json property
         
+
+        #region Inverse property
+        [InverseProperty(property: "User")]
+        public virtual ICollection<UserTokenCustomEntity> UserTokenCustoms { get; set; } = new List<UserTokenCustomEntity>();
+        #endregion Inverse property
+
         public string ModifiedBy { get; set; } = string.Empty;
         private DateTimeOffset _createdDate = DateTimeOffset.UtcNow;
         public DateTimeOffset CreatedDate

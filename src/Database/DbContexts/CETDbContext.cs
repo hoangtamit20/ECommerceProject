@@ -1,4 +1,6 @@
 using Core.Domain;
+using Core.Domain.Entities.CET.Auth;
+using Microsoft.AspNetCore.Identity;
 using Microsoft.AspNetCore.Identity.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore;
 
@@ -15,10 +17,12 @@ namespace Database.DbContexts
         public DbSet<CustomerEntity> Customers { get; set; }
         public DbSet<LinkHelperEntity> LinkHelpers { get; set; }
         public DbSet<ActivityLogEntity> ActivityLogs { get; set; }
+        public DbSet<UserTokenCustomEntity> UserTokenCustoms { get; set; }
 
         protected override void OnModelCreating(ModelBuilder builder)
         {
             base.OnModelCreating(builder);
+            builder.Ignore<IdentityUserToken<string>>();
             builder.Model.GetEntityTypes().ToList().ForEach(entityType => 
             {
                 if (entityType.GetTableName()!.StartsWith("AspNet"))

@@ -3,12 +3,14 @@ using Core.Domain;
 using Core.Domain.Entities.CET.Auth;
 using Core.Domain.Enums.Roles;
 using Core.Domain.Interfaces;
+using Core.Service;
 using Core.Service.Models;
 using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Identity;
 using Microsoft.AspNetCore.Mvc.ModelBinding;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Logging;
+using Microsoft.IdentityModel.Tokens;
 
 namespace CET.Service
 {
@@ -67,6 +69,13 @@ namespace CET.Service
                 }
                 if (!userExist.EmailConfirmed)
                 {
+                    var userToken = await _cetRepository.GetSet<UserTokenCustomEntity>(ut => ut.UserId == userExist.Id
+                        && ut.Type == CTokenType.EmailConfirmation).OrderByDescending(ut => ut.TokenExpiration).FirstOrDefaultAsync();
+                    if (userToken == null || (userToken != null && (userToken.TokenExpiration < DateTimeOffset.UtcNow || userToken.IsTokenInvoked)))
+                    {
+                        // send email
+                        await SendEmailConfirmRegistrationAsync(userExist: userExist);
+                    }
                     errors.Add(new ErrorDetail()
                     {
                         Error = $"The user '{loginDto.Email}' has not yet confirmed their email. Please check your email to confirm your account.",
@@ -74,6 +83,7 @@ namespace CET.Service
                     });
                     response.StatusCode = StatusCodes.Status403Forbidden;
                     response.Result.Errors = errors;
+                    return response;
                 }
                 if (userExist.LockoutEnabled && userExist.LockoutEnd.HasValue
                     && userExist.LockoutEnd.Value <= DateTimeOffset.UtcNow)
@@ -89,16 +99,37 @@ namespace CET.Service
                     // send request to verify two factor.
                     try
                     {
-                        var token = await _userManager.GenerateTwoFactorTokenAsync(user: userExist, tokenProvider: "Email");
-                        userExist.TwoFactorTokenProperty = new TwoFactorTokenProperty()
+                        var token = await _userManager.GenerateTwoFactorTokenAsync(user: userExist, tokenProvider: CTokenProviderType.Email.ToString());
+                        var clientInfo = RuntimeContext.AppSettings.ClientApp;
+                        var emailReplaceProperty = new TwoFactorAuthenticationEmailTemplateModel()
                         {
-                            IsTokenInvoked = false,
-                            TokenExpiration = DateTimeOffset.UtcNow.AddMinutes(minutes: 5),
-                            TwoFactorToken = token
+                            Address = clientInfo.Address,
+                            CompanyName = clientInfo.CompanyName,
+                            OwnerName = clientInfo.OwnerName,
+                            Email = clientInfo.Email,
+                            ReceiverEmail = userExist.Email ?? string.Empty,
+                            OwnerPhone = clientInfo.OwnerPhone,
+                            Token = token,
+                            CustomerName = userExist.FullName ?? string.Empty
                         };
-                        await _userManager.UpdateAsync(user: userExist);
-                        await _emailService.SendEmailAsync(email: userExist.Email ?? string.Empty, subject: "TWO FACTOR AUTHENTICATION",
-                            htmlTemplate: $"Your code here : {token}", emailProviderType: CEmailProviderType.Brevo);
+                        await _emailService.SendEmailAsync(email: userExist.Email ?? string.Empty, subject: "2FA Authentication Code",
+                            htmlTemplate: string.Empty,
+                            fileTemplateName: "TwoFactorAuthenticationCode.html",
+                            replaceProperty: emailReplaceProperty,
+                            emailProviderType: CEmailProviderType.Gmail);
+
+                        var userTokenEntity = new UserTokenCustomEntity()
+                        {
+                            Name = CTokenType.TwoFactor.ToDescription(),
+                            Token = token,
+                            IsTokenInvoked = false,
+                            TokenExpiration = DateTimeOffset.UtcNow.AddMinutes(5),
+                            Type = CTokenType.TwoFactor,
+                            UserId = userExist.Id,
+                            TokenProviderName = CTokenProviderType.Email.ToString(),
+                            TokenProviderType = CTokenProviderType.Email
+                        };
+                        await _cetRepository.AddAsync<UserTokenCustomEntity>(entity: userTokenEntity);
                         response.StatusCode = StatusCodes.Status203NonAuthoritative;
                         response.Result.Data = new LoginResponseDto()
                         {
@@ -169,7 +200,7 @@ namespace CET.Service
                 response.Result.Errors = errors;
                 return response;
             }
-            var userRefreshTokenExist = await _cetRepository.GetSet<UserRefreshTokenEntity>(usr => 
+            var userRefreshTokenExist = await _cetRepository.GetSet<UserRefreshTokenEntity>(usr =>
                 usr.UserId == currentUser.Id && usr.RefreshToken == refreshTokenDto.RefreshToken).FirstOrDefaultAsync();
             if (userRefreshTokenExist == null)
             {
@@ -212,7 +243,7 @@ namespace CET.Service
                 };
                 return response;
             }
-            catch(Exception ex)
+            catch (Exception ex)
             {
                 _logger.LogError($"{ex.Message}");
                 errors.Add(new ErrorDetail()
@@ -248,30 +279,41 @@ namespace CET.Service
                     });
                     return response;
                 }
-                var confirmTwofactorResult = await _userManager.VerifyTwoFactorTokenAsync(user: userExist, tokenProvider: "Email", token: twoFactorDto.Code);
-                if (confirmTwofactorResult)
+                var userTokenEntity = await _cetRepository.GetSet<UserTokenCustomEntity>(utc => utc.Token == twoFactorDto.Code
+                    && utc.UserId == userExist.Id).FirstOrDefaultAsync();
+                if (userTokenEntity == null)
                 {
-                    if (userExist.TwoFactorTokenProperty == null)
+                    errors.Add(new ErrorDetail() { Error = "Token is invalid.", ErrorScope = CErrorScope.PageSumarry });
+                    response.StatusCode = StatusCodes.Status400BadRequest;
+                    response.Result.Success = false;
+                    response.Result.Errors = errors;
+                    return response;
+                }
+                else if (userTokenEntity.IsTokenInvoked || userTokenEntity.TokenExpiration < DateTimeOffset.UtcNow)
+                {
+                    string errorMessage = string.Empty;
+                    if (userTokenEntity.IsTokenInvoked)
                     {
-                        userExist.TwoFactorTokenProperty = new TwoFactorTokenProperty()
-                        {
-                            IsTokenInvoked = true,
-                            TokenExpiration = DateTimeOffset.UtcNow.AddMinutes(minutes: -1),
-                            TwoFactorToken = twoFactorDto.Code
-                        };
+                        errorMessage = "Token has been revoked";
                     }
                     else
                     {
-                        var twoFactorProperty = new TwoFactorTokenProperty()
-                        {
-                            IsTokenInvoked = true,
-                            TokenExpiration = userExist.TwoFactorTokenProperty.TokenExpiration,
-                            TwoFactorToken = twoFactorDto.Code
-                        };
-                        userExist.TwoFactorTokenProperty = twoFactorProperty;
+                        errorMessage = "Token has been expired";
                     }
-                    await _userManager.UpdateAsync(user: userExist);
-
+                    errors.Add(new ErrorDetail() { Error = errorMessage, ErrorScope = CErrorScope.PageSumarry });
+                    response.Result.Success = false;
+                    response.Result.Errors = errors;
+                    response.StatusCode = StatusCodes.Status406NotAcceptable;
+                    return response;
+                }
+                var confirmTwofactorResult = await _userManager.VerifyTwoFactorTokenAsync(
+                    user: userExist,
+                    tokenProvider: userTokenEntity.TokenProviderName,
+                    token: twoFactorDto.Code);
+                if (confirmTwofactorResult)
+                {
+                    userTokenEntity.IsTokenInvoked = true;
+                    await _cetRepository.UpdateAsync<UserTokenCustomEntity>(entity: userTokenEntity);
                     // need generate accesstoken and refresh token here
                     var jwtTokenModel = await _jwtService.GenerateJwtTokenAsync(userEntity: userExist, ipAddress: RuntimeContext.CurrentIpAddress ?? string.Empty);
                     response.StatusCode = StatusCodes.Status200OK;
@@ -287,25 +329,9 @@ namespace CET.Service
                 }
                 else
                 {
-                    string errorMessage = "Code is invalid.";
-                    if (userExist.TwoFactorTokenProperty != null)
-                    {
-                        if (userExist.TwoFactorTokenProperty.TwoFactorToken != twoFactorDto.Code)
-                        {
-                            errorMessage = $"Code is invalid";
-                        }
-                        else if (userExist.TwoFactorTokenProperty.TokenExpiration < DateTimeOffset.UtcNow)
-                        {
-                            errorMessage = $"Token has expired";
-                        }
-                        else
-                        {
-                            errorMessage = $"Token has been used";
-                        }
-                    }
                     errors.Add(new ErrorDetail()
                     {
-                        Error = errorMessage,
+                        Error = "Token is invalid",
                         ErrorScope = CErrorScope.FormSummary
                     });
                     response.StatusCode = StatusCodes.Status401Unauthorized;
@@ -362,7 +388,8 @@ namespace CET.Service
             userExist = new UserEntity()
             {
                 Email = registerDto.Email,
-                UserName = registerDto.Email
+                UserName = registerDto.Email,
+                FullName = registerDto.FullName
             };
             using (var dbTransaction = await _cetRepository.BeginTransactionAsync())
             {
@@ -398,27 +425,7 @@ namespace CET.Service
                 // send email to user:
                 try
                 {
-                    var token = await _userManager.GenerateEmailConfirmationTokenAsync(user: userExist);
-                    var confirmationLink = LinkHelper.GenerateEmailConfirmationUrl(endpoint: RuntimeContext.Endpoint ?? string.Empty,
-                        relatedUrl: EmailEndpoint.REGISTRAION_CONFIRM_ENDPOINT,
-                        userId: userExist.Id, token: token).ToString();
-
-                    var emailReplaceProperty = new ConfirmEmailTemplateModel
-                    {
-                        ConfirmationLink = confirmationLink,
-                        CustomerName = registerDto.FullName,
-                        ReceiverEmail = userExist.Email ?? string.Empty,
-                        CompanyName = RuntimeContext.AppSettings.ClientApp.CompanyName,
-                        Address = RuntimeContext.AppSettings.ClientApp.Address,
-                        OwnerName = RuntimeContext.AppSettings.ClientApp.OwnerName,
-                        OwnerPhone = RuntimeContext.AppSettings.ClientApp.OwnerPhone
-                    };
-                    await _emailService.SendEmailAsync(userExist.Email ?? string.Empty,
-                        "Confirm your email to complete your registration",
-                        string.Empty, "ConfirmEmailTemplate.html",
-                        emailReplaceProperty,
-                        CEmailProviderType.Brevo);
-
+                    await SendEmailConfirmRegistrationAsync(userExist: userExist);
                     await dbTransaction.CommitAsync();
                     response.StatusCode = StatusCodes.Status202Accepted;
                     response.Result.Success = true;
@@ -429,7 +436,7 @@ namespace CET.Service
                     };
                     return response;
                 }
-                catch(Exception ex)
+                catch (Exception ex)
                 {
                     _logger.LogError(ex.Message);
                     errors.Add(new ErrorDetail()
@@ -474,68 +481,111 @@ namespace CET.Service
                 response.Result.Errors = errors;
                 return response;
             }
-            try
+            using (var dbTransaction = await _cetRepository.BeginTransactionAsync())
             {
-                var token = await _userManager.GeneratePasswordResetTokenAsync(user: userExist);
-                var confirmationLink = LinkHelper.GenerateEmailConfirmationUrl(endpoint: RuntimeContext.Endpoint ?? string.Empty,
-                        relatedUrl: EmailEndpoint.RESET_PASSWORD_CONFIRM_ENDPOINT,
-                        userId: userExist.Id, token: token).ToString();
-                var appInfo = RuntimeContext.AppSettings.ClientApp;
-                var emailReplaceProperty = new ResetPasswordEmailTemplateModel()
+                try
                 {
-                    Address = appInfo.Address,
-                    CompanyName = appInfo.CompanyName,
-                    CustomerName = userExist.FullName,
-                    Email = appInfo.Email,
-                    ReceiverEmail = userExist.Email ?? string.Empty,
-                    OwnerName = appInfo.OwnerName,
-                    OwnerPhone = appInfo.OwnerPhone
-                };
-                await _emailService.SendEmailAsync(email: userExist.Email ?? string.Empty,
-                    subject: "RESET PASSWORD REQUEST",
-                    htmlTemplate: string.Empty,
-                    fileTemplateName: "ResetPasswordTemplate.html",
-                    replaceProperty: emailReplaceProperty,
-                    emailProviderType: CEmailProviderType.Brevo);
-                var userTokenEntity = new UserTokenEntity()
-                {
-                    Value = token,
-                    Type = CTokenType.PasswordReset,
-                    TokenExpiration = DateTimeOffset.UtcNow.AddMinutes(5),
-                    IsTokenInvoked = false,
-                    Name = CTokenType.PasswordReset.ToDescription(),
-                    UserId = userExist.Id
-                };
-                await _cetRepository.UpdateAsync<UserTokenEntity>(entity: userTokenEntity);
+                    // need check if already has request still not expire.
+                    var tokenExpire = await _cetRepository.GetSet<UserTokenCustomEntity>(utc =>
+                            utc.UserId == userExist.Id
+                            && utc.Type == CTokenType.PasswordReset
+                            && utc.TokenExpiration > DateTimeOffset.UtcNow)
+                        .OrderByDescending(utc => utc.TokenExpiration)
+                        .FirstOrDefaultAsync();
+                    if (tokenExpire != null)
+                    {
+                        await dbTransaction.RollbackAsync();
+                        errors.Add(new ErrorDetail()
+                        {
+                            Error = $"You have recently made a password reset request. Please check your email to confirm the previous request. You cannot make a new request until the current request expires.",
+                            ErrorScope = CErrorScope.PageSumarry
+                        });
+                        response.StatusCode = StatusCodes.Status409Conflict;
+                        response.Result.Success = false;
+                        response.Result.Errors = errors;
+                        return response;
+                    }
+                    var token = await _userManager.GeneratePasswordResetTokenAsync(user: userExist);
+                    var confirmationLink = LinkHelper.GenerateEmailConfirmationUrl(endpoint: RuntimeContext.Endpoint ?? string.Empty,
+                            relatedUrl: EmailEndpoint.RESET_PASSWORD_CONFIRM_ENDPOINT,
+                            userId: userExist.Id, token: token).ToString();
+                    var appInfo = RuntimeContext.AppSettings.ClientApp;
+                    var emailReplaceProperty = new ResetPasswordEmailTemplateModel()
+                    {
+                        Address = appInfo.Address,
+                        CompanyName = appInfo.CompanyName,
+                        CustomerName = userExist.FullName,
+                        Email = appInfo.Email,
+                        ReceiverEmail = userExist.Email ?? string.Empty,
+                        OwnerName = appInfo.OwnerName,
+                        OwnerPhone = appInfo.OwnerPhone,
+                        ConfirmationLink = confirmationLink
+                    };
+                    await _emailService.SendEmailAsync(email: userExist.Email ?? string.Empty,
+                        subject: "RESET PASSWORD REQUEST",
+                        htmlTemplate: string.Empty,
+                        fileTemplateName: "ResetPasswordTemplate.html",
+                        replaceProperty: emailReplaceProperty,
+                        emailProviderType: CEmailProviderType.Gmail);
+                    var userTokenEntity = new UserTokenCustomEntity()
+                    {
+                        Token = token,
+                        Type = CTokenType.PasswordReset,
+                        TokenExpiration = DateTimeOffset.UtcNow.AddMinutes(5),
+                        IsTokenInvoked = false,
+                        Name = CTokenType.PasswordReset.ToDescription(),
+                        UserId = userExist.Id,
+                        TokenProviderName = CTokenProviderType.Email.ToString(),
+                        TokenProviderType = CTokenProviderType.Email
+                    };
+                    await _cetRepository.AddAsync<UserTokenCustomEntity>(entity: userTokenEntity);
 
-                response.StatusCode = StatusCodes.Status202Accepted;
-                response.Result.Success = true;
-                response.Result.Data = new ResultMessage()
+                    response.StatusCode = StatusCodes.Status202Accepted;
+                    response.Result.Success = true;
+                    response.Result.Data = new ResultMessage()
+                    {
+                        Success = true,
+                        Message = $"A password reset link has been sent to your email address. Please check your inbox and follow the instructions to reset your password."
+                    };
+                    await dbTransaction.CommitAsync();
+                    return response;
+                }
+                catch (Exception ex)
                 {
-                    Success = true,
-                    Message = $"A password reset link has been sent to your email address. Please check your inbox and follow the instructions to reset your password."
-                };
-                return response;
+                    await dbTransaction.RollbackAsync();
+                    _logger.LogError(ex.Message);
+                    errors.Add(new ErrorDetail()
+                    {
+                        Error = $"An error ocurred while generate token and send email confirm reset password.",
+                        ErrorScope = CErrorScope.Global
+                    });
+                    response.StatusCode = StatusCodes.Status500InternalServerError;
+                    response.Result.Success = false;
+                    response.Result.Errors = errors;
+                    return response;
+                }
             }
-            catch(Exception ex)
+        }
+
+        public async Task<ApiResponse<ResultMessage>> ConfirmResetPasswordAsync(ConfirmResetPasswordRequestDto confirmDto,
+            ModelStateDictionary? modelState = null)
+        {
+            var errors = ErrorHelper.GetModelStateError(modelState: modelState);
+            var response = new ApiResponse<ResultMessage>();
+            var parseTokenResult = LinkHelper.DecodeTokenFromUrl(tokenFromUrl: confirmDto.Token);
+            if (parseTokenResult.IsNullOrEmpty())
             {
-                _logger.LogError(ex.Message);
                 errors.Add(new ErrorDetail()
                 {
-                    Error = $"An error ocurred while generate token and send email confirm reset password.",
-                    ErrorScope = CErrorScope.Global
+                    Error = "Token invalid",
+                    ErrorScope = CErrorScope.PageSumarry
                 });
-                response.StatusCode = StatusCodes.Status500InternalServerError;
+                response.StatusCode = StatusCodes.Status406NotAcceptable;
                 response.Result.Success = false;
                 response.Result.Errors = errors;
                 return response;
             }
-        }
-
-        public async Task<ApiResponse<ResultMessage>> ConfirmResetPasswordAsync(ConfirmResetPasswordRequestDto confirmDto, ModelStateDictionary? modelState = null)
-        {
-            var errors = ErrorHelper.GetModelStateError(modelState: modelState);
-            var response = new ApiResponse<ResultMessage>();
+            confirmDto.Token = parseTokenResult ?? string.Empty;
             if (!errors.IsNullOrEmpty())
             {
                 response.StatusCode = StatusCodes.Status400BadRequest;
@@ -556,22 +606,58 @@ namespace CET.Service
                 response.Result.Success = false;
                 return response;
             }
-            var checkTokenResult = await _userManager.ResetPasswordAsync(user: userExist, token: confirmDto.Token, newPassword: confirmDto.NewPassword);
-            var userToken = await _cetRepository.GetSet<UserTokenEntity>(ut => ut.Value == confirmDto.Token && ut.UserId == userExist.Id).FirstOrDefaultAsync();
-            if (!checkTokenResult.Succeeded)
+            var userToken = await _cetRepository.GetSet<UserTokenCustomEntity>(ut =>
+                ut.Token == confirmDto.Token && ut.UserId == userExist.Id).FirstOrDefaultAsync();
+            if (userToken == null)
+            {
+                errors.Add(new ErrorDetail()
+                {
+                    Error = "Token invalid",
+                    ErrorScope = CErrorScope.PageSumarry
+                });
+                response.StatusCode = StatusCodes.Status406NotAcceptable;
+                response.Result.Success = false;
+                response.Result.Errors = errors;
+                return response;
+            }
+            else if (userToken.IsTokenInvoked || userToken.TokenExpiration < DateTimeOffset.UtcNow)
             {
                 string errorMessage = string.Empty;
-                if (userToken == null)
+                if (userToken.IsTokenInvoked)
                 {
-                    errorMessage = "Token is invalid";
-                }
-                else if (userToken != null && userToken.IsTokenInvoked)
-                {
-                    errorMessage = "Token has been used.";
+                    errorMessage = "Token has been revoked.";
                 }
                 else
                 {
+                    errorMessage = "Token has beeen expired";
+                }
+                errors.Add(new ErrorDetail()
+                {
+                    Error = errorMessage,
+                    ErrorScope = CErrorScope.PageSumarry
+                });
+                response.StatusCode = StatusCodes.Status406NotAcceptable;
+                response.Result.Success = false;
+                response.Result.Errors = errors;
+                return response;
+            }
+
+            var checkTokenResult = await _userManager.ResetPasswordAsync(user: userExist,
+                token: confirmDto.Token, newPassword: confirmDto.NewPassword);
+            if (!checkTokenResult.Succeeded)
+            {
+                string errorMessage = string.Empty;
+                if (userToken.IsTokenInvoked)
+                {
+                    errorMessage = "Token has been used.";
+                }
+                else if (userToken.TokenExpiration < DateTimeOffset.UtcNow)
+                {
                     errorMessage = "Token expired";
+                }
+                else
+                {
+                    errorMessage = String.Join(Environment.NewLine, checkTokenResult.Errors.Select(err => err.Description));
                 }
                 errors.Add(new ErrorDetail()
                 {
@@ -580,8 +666,8 @@ namespace CET.Service
                 });
                 return response;
             }
-            userToken!.IsTokenInvoked = true;
-            await _cetRepository.UpdateAsync<UserTokenEntity>(entity: userToken);
+            userToken.IsTokenInvoked = true;
+            await _cetRepository.UpdateAsync<UserTokenCustomEntity>(entity: userToken);
             response.Result.Success = true;
             response.Result.Data = new ResultMessage()
             {
@@ -592,5 +678,46 @@ namespace CET.Service
             return response;
         }
         #endregion Reset password
+
+
+        #region Send Email
+        private async Task SendEmailConfirmRegistrationAsync(UserEntity userExist)
+        {
+            var token = await _userManager.GenerateEmailConfirmationTokenAsync(user: userExist);
+            var confirmationLink = LinkHelper.GenerateEmailConfirmationUrl(endpoint: RuntimeContext.Endpoint ?? string.Empty,
+                relatedUrl: EmailEndpoint.REGISTRAION_CONFIRM_ENDPOINT,
+                userId: userExist.Id, token: token).ToString();
+            var clientInfo = RuntimeContext.AppSettings.ClientApp;
+            var emailReplaceProperty = new ConfirmEmailTemplateModel
+            {
+                ConfirmationLink = confirmationLink,
+                CustomerName = userExist.FullName,
+                ReceiverEmail = userExist.Email ?? string.Empty,
+                CompanyName = clientInfo.CompanyName,
+                Address = clientInfo.Address,
+                OwnerName = clientInfo.OwnerName,
+                OwnerPhone = clientInfo.OwnerPhone
+            };
+            await _emailService.SendEmailAsync(userExist.Email ?? string.Empty,
+                "Confirm your email to complete your registration",
+                string.Empty, "ConfirmEmailTemplate.html",
+                emailReplaceProperty,
+                CEmailProviderType.Gmail);
+
+            // save userToken
+            var userTokenEntity = new UserTokenCustomEntity()
+            {
+                IsTokenInvoked = false,
+                Name = CTokenType.EmailConfirmation.ToDescription(),
+                Type = CTokenType.EmailConfirmation,
+                TokenExpiration = DateTimeOffset.UtcNow.AddMinutes(5),
+                UserId = userExist.Id,
+                Token = token,
+                TokenProviderName = CTokenProviderType.Email.ToString(),
+                TokenProviderType = CTokenProviderType.Email
+            };
+            await _cetRepository.AddAsync<UserTokenCustomEntity>(entity: userTokenEntity);
+        }
+        #endregion Send Email
     }
 }

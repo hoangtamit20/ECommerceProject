@@ -108,7 +108,7 @@ namespace CET.Service
                                     Message = "Your account registration is complete! Please check your email to confirm your registration."
                                 };
                                 response.Result.Success = true;
-                                return response; 
+                                return response;
                             }
                             await dbTransaction.CommitAsync();
                         }
@@ -164,45 +164,79 @@ namespace CET.Service
         public async Task<ApiResponse<string>> ConfirmedEmailAsync(ConfirmEmailDto confirmEmailDto, ModelStateDictionary? modelState = null)
         {
             var response = new ApiResponse<string>();
-            var errors = ErrorHelper.GetModelStateError(modelState: modelState);
 
-            if (!errors.IsNullOrEmpty())
+            var errors = ErrorHelper.GetModelStateError(modelState: modelState);
+            if (errors.Any())
             {
-                response.Result.Success = false;
-                response.StatusCode = StatusCodes.Status400BadRequest;
-                response.Result.Errors = errors;
-                return response;
+                return GenerateErrorResponse(response, StatusCodes.Status400BadRequest, errors);
             }
 
             var userExist = await _userManager.FindByIdAsync(confirmEmailDto.UserId);
             if (userExist == null)
             {
-                response.Result.Success = false;
-                response.Result.Errors.Add(new ErrorDetail { Field = "UserId", Error = "User doesn't exist", ErrorScope = CErrorScope.PageSumarry });
-                response.StatusCode = StatusCodes.Status404NotFound;
-                return response;
+                var userNotFoundError = new ErrorDetail { Field = "UserId", Error = "User doesn't exist", ErrorScope = CErrorScope.PageSumarry };
+                return GenerateErrorResponse(response, StatusCodes.Status404NotFound, new List<ErrorDetail> { userNotFoundError });
+            }
+
+            var userTokenEntity = await _cetRepository.GetSet<UserTokenCustomEntity>(utc =>
+                utc.UserId == userExist.Id && utc.Token == confirmEmailDto.Token).FirstOrDefaultAsync();
+
+            if (userTokenEntity != null)
+            {
+                if (userTokenEntity.IsTokenInvoked)
+                {
+                    return GenerateErrorResponse(response, StatusCodes.Status422UnprocessableEntity,
+                        new List<ErrorDetail> { new ErrorDetail { Error = "Token has been invoked", ErrorScope = CErrorScope.PageSumarry } });
+                }
+                if (userTokenEntity.TokenExpiration < DateTimeOffset.UtcNow)
+                {
+                    return GenerateErrorResponse(response, StatusCodes.Status422UnprocessableEntity,
+                        new List<ErrorDetail> { new ErrorDetail { Error = "Token has expired", ErrorScope = CErrorScope.PageSumarry } });
+                }
             }
 
             var result = await _userManager.ConfirmEmailAsync(userExist, confirmEmailDto.Token);
             if (!result.Succeeded)
             {
-                response.Result.Success = false;
-                response.Result.Errors = result.Errors.Select(err => new ErrorDetail
+                var errorsList = result.Errors.Select(err => new ErrorDetail
                 {
                     ErrorScope = CErrorScope.PageSumarry,
-                    Field = nameof(UserEntity.Email),
                     Error = err.Description
                 }).ToList();
-                response.StatusCode = StatusCodes.Status422UnprocessableEntity;
-                return response;
+                return GenerateErrorResponse(response, StatusCodes.Status422UnprocessableEntity, errorsList);
+            }
+
+            if (userTokenEntity == null)
+            {
+                userTokenEntity = new UserTokenCustomEntity
+                {
+                    IsTokenInvoked = true,
+                    Name = CTokenType.EmailConfirmation.ToDescription(),
+                    Token = confirmEmailDto.Token,
+                    TokenExpiration = DateTimeOffset.UtcNow.AddMinutes(-1),
+                    Type = CTokenType.EmailConfirmation,
+                    UserId = userExist.Id
+                };
+                await _cetRepository.AddAsync(userTokenEntity);
+            }
+            else
+            {
+                userTokenEntity.IsTokenInvoked = true;
+                await _cetRepository.UpdateAsync(userTokenEntity);
             }
 
             response.Result.Success = true;
-            response.Result.Data = $"Your email has been confirmed successfully.";
+            response.Result.Data = "Your email has been confirmed successfully.";
             return response;
         }
 
-
+        private ApiResponse<string> GenerateErrorResponse(ApiResponse<string> response, int statusCode, List<ErrorDetail> errors)
+        {
+            response.Result.Success = false;
+            response.StatusCode = statusCode;
+            response.Result.Errors = errors;
+            return response;
+        }
 
         private async Task CheckUserExistenceAsync(CreateUserRequestDto requestDto, List<ErrorDetail> errors)
         {
@@ -312,7 +346,19 @@ namespace CET.Service
                         "Confirm your email to complete your registration",
                         string.Empty, "ConfirmEmailTemplate.html",
                         emailReplaceProperty,
-                        CEmailProviderType.Brevo);
+                        CEmailProviderType.Gmail);
+                    var userTokenEntity = new UserTokenCustomEntity()
+                    {
+                        Type = CTokenType.EmailConfirmation,
+                        Name = CTokenType.EmailConfirmation.ToDescription(),
+                        Token = token,
+                        TokenExpiration = DateTimeOffset.UtcNow.AddMinutes(5),
+                        IsTokenInvoked = false,
+                        UserId = userEntity.Id,
+                        TokenProviderName = CTokenProviderType.Email.ToString(),
+                        TokenProviderType = CTokenProviderType.Email
+                    };
+                    await _cetRepository.AddAsync<UserTokenCustomEntity>(entity: userTokenEntity);
                     return;
                 }
                 catch (Exception ex)

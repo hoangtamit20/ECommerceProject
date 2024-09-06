@@ -1,5 +1,4 @@
 using Core.Domain;
-using Core.Domain.Enums.Roles;
 using Core.Domain.Interfaces;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
@@ -9,14 +8,14 @@ namespace CET.API.Controllers
 {
     [ApiController]
     [Route("api/[controller]")]
-    public class UrlHelperController : ControllerBase
+    public class LinkHelperController : ControllerBase
     {
-        private readonly ILogger<UrlHelperController> _logger;
+        private readonly ILogger<LinkHelperController> _logger;
         private readonly ICETRepository _cETRepository;
 
-        public UrlHelperController(
+        public LinkHelperController(
             ICETRepository cETRepository,
-            ILogger<UrlHelperController> logger)
+            ILogger<LinkHelperController> logger)
         {
             _logger = logger;
             _cETRepository = cETRepository;

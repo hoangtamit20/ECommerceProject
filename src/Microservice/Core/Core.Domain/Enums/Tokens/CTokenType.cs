@@ -9,4 +9,13 @@ namespace Core.Domain
         ChangeEmail = 4,
         User = 5
     }
+
+    public enum CTokenProviderType
+    {
+        None = 0,
+        Email = 1,
+        Phone = 2,
+        Authenticator = 3,
+        Default = 4
+    }
 }
