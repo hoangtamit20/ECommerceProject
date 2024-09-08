@@ -160,6 +160,13 @@ namespace Database.Repositories
             return entity;
         }
 
+        public async Task<int> UpdateRangeAsync<T>(IEnumerable<T> entities, bool clearTracker = false, CancellationToken cancellationToken = default) where T : class
+        {
+            _context.Set<T>().UpdateRange(entities: entities);
+            var result = await SaveChangesAsync(clearTracker, cancellationToken);
+            return result;
+        }
+
 
         public async Task<int> SaveChangesAsync(bool clearTracker = false, CancellationToken cancellationToken = default)
         {

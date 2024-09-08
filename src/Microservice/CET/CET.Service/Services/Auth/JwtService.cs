@@ -56,7 +56,7 @@ namespace CET.Service
                 audience: RuntimeContext.AppSettings.JwtSetting.Audience,
                 claims: userClaims,
                 notBefore: now,
-                expires: now.AddHours(1),
+                expires: now.AddSeconds(30),
                 signingCredentials: credentials
             );
 

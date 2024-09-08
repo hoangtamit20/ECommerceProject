@@ -1,10 +1,6 @@
 ﻿using Microsoft.AspNetCore.Http;
-using Microsoft.AspNetCore.Identity;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
-using System.Security.Claims;
-using System.Threading;
-using System.Threading.Tasks;
 
 namespace Core.Domain
 {
@@ -12,6 +8,7 @@ namespace Core.Domain
     {
         public static AppSettings AppSettings { get; private set; }
         private static AsyncLocal<UserEntity?> _currentUser = new AsyncLocal<UserEntity?>();
+        private static AsyncLocal<string?> _currentAccessToken = new AsyncLocal<string?>();
         private static AsyncLocal<string?> _currentUserId = new AsyncLocal<string?>();
         private static AsyncLocal<string?> _endpoint = new AsyncLocal<string?>();
         public static IServiceProvider? ServiceProvider { get; set; }
@@ -71,6 +68,18 @@ namespace Core.Domain
             set
             {
                 _endpoint.Value = value;
+            }
+        }
+
+        public static string? CurrentAccessToken
+        {
+            get
+            {
+                return _currentAccessToken.Value;
+            }
+            set
+            {
+                _currentAccessToken.Value = value;
             }
         }
     }

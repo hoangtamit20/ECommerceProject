@@ -1,8 +1,6 @@
 using CET.Domain;
 using Core.Domain;
-using Core.Domain.Enums.Roles;
-using Core.Domain.Interfaces;
-using Core.Service.Models;
+using Core.Service;
 using Mapster;
 using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Identity;
@@ -16,7 +14,6 @@ namespace CET.Service
     public class UserService : IUserService
     {
         private readonly ICETRepository _cetRepository;
-        private readonly IHostEnvironment _env;
         private readonly UserManager<UserEntity> _userManager;
         private readonly RoleManager<RoleEntity> _roleManager;
         private readonly ILogger<UserService> _logger;
@@ -35,7 +32,6 @@ namespace CET.Service
             _userManager = userManager;
             _logger = logger;
             _emailService = emailService;
-            _env = env;
             _roleManager = roleManager;
         }
 
@@ -322,24 +318,24 @@ namespace CET.Service
         private async Task SendEmailConfirmationAsync(UserEntity userEntity, CreateUserRequestDto requestDto,
             List<ErrorDetail> errors)
         {
-            var links = _cetRepository.GetSet<LinkHelperEntity>().Select(item => _env.IsDevelopment() ? item.DevelopmentEndpoint : item.ProductionEndpoint).ToList();
-            if (!links.IsNullOrEmpty())
+            var endpoint = RuntimeContext.Endpoint;
+            if (!string.IsNullOrEmpty(endpoint))
             {
                 try
                 {
                     var token = await _userManager.GenerateEmailConfirmationTokenAsync(userEntity);
-                    var confirmationLink = LinkHelper.GenerateEmailConfirmationUrl(endpoint: links.First(),
+                    var confirmationLink = LinkHelper.GenerateEmailConfirmationUrl(endpoint: RuntimeContext.Endpoint ?? string.Empty,
                         relatedUrl: EmailEndpoint.REGISTRAION_CONFIRM_ENDPOINT,
                         userId: userEntity.Id, token: token).ToString();
-
+                    var clientInfo = RuntimeContext.AppSettings.ClientApp;
                     var emailReplaceProperty = new ConfirmEmailTemplateModel
                     {
                         ConfirmationLink = confirmationLink,
                         CustomerName = requestDto.FullName,
                         ReceiverEmail = requestDto.Email ?? string.Empty,
-                        CompanyName = RuntimeContext.AppSettings.ClientApp.CompanyName,
-                        Address = RuntimeContext.AppSettings.ClientApp.Address,
-                        OwnerPhone = RuntimeContext.AppSettings.ClientApp.OwnerPhone
+                        CompanyName = clientInfo.CompanyName,
+                        Address = clientInfo.Address,
+                        OwnerPhone = clientInfo.OwnerPhone
                     };
 
                     await _emailService.SendEmailAsync(userEntity.Email ?? string.Empty,
@@ -377,6 +373,5 @@ namespace CET.Service
                 ErrorScope = CErrorScope.PageSumarry,
             });
         }
-
     }
 }

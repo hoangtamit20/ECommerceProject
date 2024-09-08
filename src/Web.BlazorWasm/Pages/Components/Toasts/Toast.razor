@@ -1,0 +1,73 @@
+@using System.ComponentModel
+@code {
+    [Parameter] public ToastModel ToastModel { get; set; } = new();
+    private double progress = 100;
+
+    protected override async Task OnParametersSetAsync()
+    {
+        if (ToastModel.TimeToClose > 0)
+        {
+            int delay = (ToastModel.TimeToClose > 10 ? 10 : ToastModel.TimeToClose) * 1000;
+            int interval = 100;
+            int steps = delay / interval;
+            for (int i = 0; i < steps; i++)
+            {
+                progress = 100 - (i * 100.0 / steps);
+                StateHasChanged();
+                await Task.Delay(interval);
+            }
+            ToastModel.IsVisible = false;
+            StateHasChanged();
+        }
+    }
+
+    private string GetStatusIcon()
+    {
+        return ToastModel.Status switch
+        {
+            CToastType.Success => "bi bi-check-circle-fill",
+            CToastType.Warning => "bi bi-exclamation-triangle-fill",
+            CToastType.Error => "bi bi-x-circle-fill",
+            CToastType.Info => "bi bi-info-circle-fill",
+            _ => "bi bi-question-circle-fill",
+        };
+    }
+
+    private string GetTextColor()
+    {
+        return ToastModel.Status switch
+        {
+            CToastType.Success => "text-white",
+            CToastType.Warning => "text-dark",
+            CToastType.Error => "text-white",
+            CToastType.Info => "text-white",
+            _ => "text-dark",
+        };
+    }
+}
+
+@if (ToastModel.IsVisible)
+{
+    <div class="toast-container position-fixed @ToastModel.Position.ToDescription() p-3">
+        <div id="liveToast" class="toast show" role="alert" aria-live="assertive" aria-atomic="true"
+            data-bs-autohide="false">
+            <div class="toast-header bg-@ToastModel.Status.ToDescription() @GetTextColor()">
+                <i class="@GetStatusIcon() me-2" style="font-size: 1.5rem;"></i>
+                <strong class="me-auto">@ToastModel.Title</strong>
+                <small>11 mins ago</small>
+                <button type="button" class="btn-close" @onclick="() => ToastModel.IsVisible = false"
+                    data-bs-dismiss="toast" aria-label="Close"></button>
+            </div>
+            <div class="toast-body">
+                @ToastModel.Message
+            </div>
+            <div class="progress progress-bar-thin">
+                <div class="progress-bar" role="progressbar" style="width: @progress%;" aria-valuenow="@progress"
+                    aria-valuemin="0" aria-valuemax="100">
+                </div>
+            </div>
+        </div>  
+    </div>
+}
+
+<link rel="stylesheet" href="css\toast\toast.css">

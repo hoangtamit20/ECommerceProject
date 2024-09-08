@@ -1,4 +1,4 @@
-namespace Core.Domain.Interfaces
+namespace Core.Domain
 {
     public interface ICETRepository : IRepositoryBase
     {

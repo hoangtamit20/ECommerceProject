@@ -16,5 +16,6 @@ namespace CET.Domain
             ResetPasswordRequestDto resetPasswordDto, ModelStateDictionary? modelState = null);
         Task<ApiResponse<ResultMessage>> ConfirmResetPasswordAsync(ConfirmResetPasswordRequestDto confirmDto,
             ModelStateDictionary? modelState = null);
+        Task<ApiResponse<ResultMessage>> LogOutAsync(bool areAllDevices = false);
     }
 }

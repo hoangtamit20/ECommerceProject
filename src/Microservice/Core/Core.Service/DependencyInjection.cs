@@ -144,6 +144,16 @@ public static class DependencyInjection
                 RuntimeContext.CurrentUser = user;
                 RuntimeContext.CurrentUserId = userId;
             }
+            var httpRequest = httpContextAccessor.HttpContext?.Request;
+            if (httpRequest != null &&  httpRequest.Headers.TryGetValue("Authorization", out var accessTokenValue) &&
+                accessTokenValue.ToString().StartsWith("Bearer "))
+            {
+                RuntimeContext.CurrentAccessToken = accessTokenValue.ToString().Substring("Bearer ".Length).Trim();
+            }
+            else
+            {
+                RuntimeContext.CurrentAccessToken = httpRequest?.Query["access_token"].FirstOrDefault() ?? string.Empty;
+            }
 
             await next.Invoke();
         });

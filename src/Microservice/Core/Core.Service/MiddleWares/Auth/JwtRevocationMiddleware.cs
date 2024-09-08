@@ -1,10 +1,10 @@
 using System.Security.Claims;
 using Core.Domain;
-using Core.Domain.Interfaces;
 using Microsoft.AspNetCore.Authentication;
 using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Identity;
 using Microsoft.EntityFrameworkCore;
+using Microsoft.Extensions.DependencyInjection;
 using Microsoft.IdentityModel.JsonWebTokens;
 
 namespace Core.Service
@@ -12,21 +12,16 @@ namespace Core.Service
     public class JwtRevocationMiddleware
     {
         private readonly RequestDelegate _next;
-        private readonly ICETRepository _cetRepository;
 
-        // Constructor that takes the next middleware in the pipeline.
-        public JwtRevocationMiddleware(RequestDelegate next, ICETRepository cetRepository)
+        public JwtRevocationMiddleware(RequestDelegate next)
         {
-            _cetRepository = cetRepository;
             _next = next;
         }
 
-        // This method is invoked for each HTTP request.
-        public async Task InvokeAsync(
-            HttpContext context,
-            UserManager<UserEntity> userManager,
-            ICETRepository cetRepository)
+        public async Task InvokeAsync(HttpContext context, UserManager<UserEntity> userManager)
         {
+            var cetRepository = context.RequestServices.GetRequiredService<ICETRepository>();
+
             // Authenticate the user.
             var authResult = await context.AuthenticateAsync();
 
@@ -52,7 +47,7 @@ namespace Core.Service
                 }
 
                 // Retrieve the user's refresh token from the database.
-                var userRefreshToken = await GetUserRefreshTokenAsync(_cetRepository, accessToken, userIdClaim.Value);
+                var userRefreshToken = await GetUserRefreshTokenAsync(cetRepository, accessToken, userIdClaim.Value);
                 if (userRefreshToken == null)
                 {
                     // If the refresh token is missing, return an error.

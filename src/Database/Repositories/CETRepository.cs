@@ -1,4 +1,4 @@
-using Core.Domain.Interfaces;
+using Core.Domain;
 using Database.DbContexts;
 
 namespace Database.Repositories

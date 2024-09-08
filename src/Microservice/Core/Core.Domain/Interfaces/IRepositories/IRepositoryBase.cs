@@ -9,6 +9,7 @@ namespace Core.Domain
         IQueryable<T> GetSetAsTracking<T>(Expression<Func<T, bool>>? predicate = null) where T : class;
         IQueryable<T> GetSet<T>(Expression<Func<T, bool>>? predicate = null) where T : class;
         Task<T> UpdateAsync<T>(T entity, bool clearTracker = false, CancellationToken cancellationToken = default) where T : class;
+        Task<int> UpdateRangeAsync<T>(IEnumerable<T> entities, bool clearTracker = false, CancellationToken cancellationToken = default) where T : class;
         Task<T?> FindForUpdateAsync<T>(Expression<Func<T, bool>> predicate,
             CancellationToken cancellationToken = default) where T : class;
         Task<T?> FindAsync<T>(Expression<Func<T, bool>> predicate,

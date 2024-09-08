@@ -1,0 +1,18 @@
+@code {
+    [Parameter]
+    public List<ErrorDetail> Errors { get; set; } = new();
+
+    [Parameter]
+    public string FieldName { get; set; } = string.Empty;
+
+    private string GetErrorForField()
+    {
+        var error = Errors?.FirstOrDefault(e => e.ErrorScope == CErrorScope.Field && e.Field == FieldName);
+        return error?.Error ?? string.Empty;
+    }
+}
+
+@if (!string.IsNullOrEmpty(GetErrorForField()))
+{
+    <span class="text-danger">@GetErrorForField()</span>
+}

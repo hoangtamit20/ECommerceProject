@@ -25,6 +25,7 @@ namespace CET.API.Controllers
         [Authorize]
         public async Task<IActionResult> GetLinkHelpers()
         {
+            var a = RuntimeContext.CurrentAccessToken;
             return Ok(await _cETRepository.GetSet<LinkHelperEntity>().ToListAsync());
         }
 

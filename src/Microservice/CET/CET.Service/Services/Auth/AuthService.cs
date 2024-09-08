@@ -1,10 +1,6 @@
 using CET.Domain;
 using Core.Domain;
-using Core.Domain.Entities.CET.Auth;
-using Core.Domain.Enums.Roles;
-using Core.Domain.Interfaces;
 using Core.Service;
-using Core.Service.Models;
 using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Identity;
 using Microsoft.AspNetCore.Mvc.ModelBinding;
@@ -679,6 +675,63 @@ namespace CET.Service
         }
         #endregion Reset password
 
+        #region Logout
+        public async Task<ApiResponse<ResultMessage>> LogOutAsync(bool areAllDevices = false)
+        {
+            var currentUserId = RuntimeContext.CurrentUserId;
+            var currentAccessToken = RuntimeContext.CurrentAccessToken;
+            var errors = new List<ErrorDetail>();
+            var response = new ApiResponse<ResultMessage>();
+            if (string.IsNullOrEmpty(currentUserId) || currentAccessToken == null)
+            {
+                errors.Add(new ErrorDetail() { Error = "Authentication failed!", ErrorScope = CErrorScope.PageSumarry });
+                response.StatusCode = StatusCodes.Status401Unauthorized;
+                response.Result.Errors = errors;
+                response.Result.Success = false;
+                return response;
+            }
+            var userRefreshTokenEntity = await _cetRepository.GetSet<UserRefreshTokenEntity>(urt => urt.UserId == currentUserId 
+                && urt.AccessToken == currentAccessToken).FirstOrDefaultAsync();
+            if (userRefreshTokenEntity == null)
+            {
+                response.StatusCode = StatusCodes.Status200OK;
+                response.Result.Success = true;
+                response.Result.Data = new ResultMessage(){ Message = "Logout successfully", Success = true };
+                return response;
+            }
+            var revokedUserRefreshTokens = areAllDevices ? await _cetRepository.GetSet<UserRefreshTokenEntity>(urt => urt.UserId == currentUserId
+                && !urt.IsRevoked && urt.Active).ToListAsync() : new List<UserRefreshTokenEntity>(){ userRefreshTokenEntity };
+            var now = DateTimeOffset.UtcNow;
+            revokedUserRefreshTokens.ForEach(item =>
+            {
+                item.IsRevoked = true;
+                item.ExpireTime = now;
+                item.LastRevoked = now;
+            });
+            using (var dbTransaction = await _cetRepository.BeginTransactionAsync())
+            {
+                try
+                {
+                    await _cetRepository.UpdateRangeAsync(entities: revokedUserRefreshTokens);
+                    await dbTransaction.CommitAsync();
+                    response.Result.Success = true;
+                    response.Result.Data = new ResultMessage(){ Message = "Logout success fully", Success = true };
+                    response.StatusCode = StatusCodes.Status200OK;
+                    return response;
+                }
+                catch(Exception ex)
+                {
+                    _logger.LogError(ex.Message);
+                    await dbTransaction.RollbackAsync();
+                    errors.Add(new ErrorDetail(){ Error = "An error occured while revoked token.", ErrorScope = CErrorScope.PageSumarry });
+                    response.Result.Errors = errors;
+                    response.Result.Success = false;
+                    response.StatusCode = StatusCodes.Status500InternalServerError;
+                    return response;
+                }
+            }
+        }
+        #endregion Logout
 
         #region Send Email
         private async Task SendEmailConfirmRegistrationAsync(UserEntity userExist)
@@ -702,7 +755,7 @@ namespace CET.Service
                 "Confirm your email to complete your registration",
                 string.Empty, "ConfirmEmailTemplate.html",
                 emailReplaceProperty,
-                CEmailProviderType.Gmail);
+                CEmailProviderType.Elastice);
 
             // save userToken
             var userTokenEntity = new UserTokenCustomEntity()

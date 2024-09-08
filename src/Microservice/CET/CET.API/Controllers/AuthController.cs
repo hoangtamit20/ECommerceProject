@@ -1,3 +1,4 @@
+using Core.Domain;
 using CET.Domain;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
@@ -68,6 +69,14 @@ namespace CET.API.Controllers
         public async Task<IActionResult> ConfirmResetPassword(ConfirmResetPasswordRequestDto confirmResetDto)
         {
             var result = await _authService.ConfirmResetPasswordAsync(confirmDto: confirmResetDto, modelState: ModelState);
+            return StatusCode(statusCode: result.StatusCode, value: result.Result);
+        }
+
+        [HttpPost("logout")]
+        [Authorize]
+        public async Task<IActionResult> Logout(bool areAllDevices = false)
+        {
+            var result = await _authService.LogOutAsync(areAllDevices: areAllDevices);
             return StatusCode(statusCode: result.StatusCode, value: result.Result);
         }
     }

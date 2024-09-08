@@ -1,4 +1,4 @@
-namespace Core.Service.Models
+namespace Core.Service
 {
     public class ConfirmEmailTemplateModel : BaseEmailTemplateModel
     {
