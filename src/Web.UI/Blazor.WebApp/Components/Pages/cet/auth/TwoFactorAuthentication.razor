@@ -1,0 +1,79 @@
+@page "/two-factor-authentication"
+@using Blazor.WebApp.Models
+@layout AuthLayout
+@inject NavigationManager NavigationManager
+@rendermode InteractiveServer
+
+<section id="main-site">
+    <div class="glass text-center">
+
+        <div class="title">
+            <h1 class="font-poppins text-white">Two Step Verification</h1>
+            <img src="images/auth/2FA.png" class="img-fluid" alt="">
+
+            <p class="font-poppins text-light">We've sent a varification code to</p>
+            <p class="font-poppins text-light">+91 ********65</p>
+        </div>
+
+        <!-- form -->
+        <EditForm FormName="TwoFactorForm" Model="TwoFactorModel" OnInvalidSubmit="TwoFactorAuthenticationAsync"
+            class="py-2">
+            <DataAnnotationsValidator />
+            <h4 class="font-poppins text-light">Enter your OTP Code Here:</h4>
+
+            <div class="col py-1 d-flex gap-1">
+                <InputText @bind-Value="TwoFactorModel.Digit1" type="number" class="form-control" />
+                <InputText @bind-Value="TwoFactorModel.Digit2" type="number" class="form-control" />
+                <InputText @bind-Value="TwoFactorModel.Digit3" type="number" class="form-control" />
+                <InputText @bind-Value="TwoFactorModel.Digit4" type="number" class="form-control" />
+                <InputText @bind-Value="TwoFactorModel.Digit5" type="number" class="form-control" />
+                <InputText @bind-Value="TwoFactorModel.Digit6" type="number" class="form-control" />
+            </div>
+
+            <div class="col">
+                <button type="submit" class="btn">Verify</button>
+            </div>
+
+            <div class="py-1">
+                <p class="font-poppins text-light">Not received your code?</p>
+                <p class="font-poppins text-light"><a href="" class="link">Resend</a> OR <a href="#" class="link"> Call
+                    </a></p>
+            </div>
+        </EditForm>
+    </div>
+</section>
+
+<link rel="stylesheet" href="css/auth/2fa.css">
+
+
+@code {
+    private TwoFactorModel TwoFactorModel = new();
+
+    [Parameter]
+    public string Email { get; set; } = string.Empty;
+
+    protected override async Task OnParametersSetAsync()
+    {
+        @* var uri = new Uri(NavigationManager.Uri);
+var query = Microsoft.AspNetCore.WebUtilities.QueryHelpers.ParseQuery(uri.Query);
+if (query.TryGetValue("email", out var email))
+{
+TwoFactorModel.Email = email.ToString();
+}
+
+await base.OnParametersSetAsync(); *@
+
+        var fullUrl = NavigationManager.Uri;
+        Email = QueryStringHelper.GetQueryParameter(fullUrl, "email", email => email) ?? string.Empty;
+        TwoFactorModel.Email = Email;
+
+        await base.OnParametersSetAsync();
+    }
+
+    private async Task TwoFactorAuthenticationAsync()
+    {
+        var fullCode = TwoFactorModel.GetFullCode();
+        await Task.CompletedTask;
+    }
+
+}

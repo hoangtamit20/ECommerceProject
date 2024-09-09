@@ -70,7 +70,23 @@ namespace CET.Service
                     if (userToken == null || (userToken != null && (userToken.TokenExpiration < DateTimeOffset.UtcNow || userToken.IsTokenInvoked)))
                     {
                         // send email
-                        await SendEmailConfirmRegistrationAsync(userExist: userExist);
+                        try
+                        {
+                            await SendEmailConfirmRegistrationAsync(userExist: userExist);
+                        }
+                        catch (Exception ex)
+                        {
+                            _logger.LogError(ex.Message);
+                            errors.Add(new ErrorDetail()
+                            {
+                                Error = "An error occured while send email to confirmation account.",
+                                ErrorScope = CErrorScope.PageSumarry
+                            });
+                            response.StatusCode = StatusCodes.Status500InternalServerError;
+                            response.Result.Errors = errors;
+                            response.Result.Success = false;
+                            return response;
+                        }
                     }
                     errors.Add(new ErrorDetail()
                     {
@@ -690,17 +706,17 @@ namespace CET.Service
                 response.Result.Success = false;
                 return response;
             }
-            var userRefreshTokenEntity = await _cetRepository.GetSet<UserRefreshTokenEntity>(urt => urt.UserId == currentUserId 
+            var userRefreshTokenEntity = await _cetRepository.GetSet<UserRefreshTokenEntity>(urt => urt.UserId == currentUserId
                 && urt.AccessToken == currentAccessToken).FirstOrDefaultAsync();
             if (userRefreshTokenEntity == null)
             {
                 response.StatusCode = StatusCodes.Status200OK;
                 response.Result.Success = true;
-                response.Result.Data = new ResultMessage(){ Message = "Logout successfully", Success = true };
+                response.Result.Data = new ResultMessage() { Message = "Logout successfully", Success = true };
                 return response;
             }
             var revokedUserRefreshTokens = areAllDevices ? await _cetRepository.GetSet<UserRefreshTokenEntity>(urt => urt.UserId == currentUserId
-                && !urt.IsRevoked && urt.Active).ToListAsync() : new List<UserRefreshTokenEntity>(){ userRefreshTokenEntity };
+                && !urt.IsRevoked && urt.Active).ToListAsync() : new List<UserRefreshTokenEntity>() { userRefreshTokenEntity };
             var now = DateTimeOffset.UtcNow;
             revokedUserRefreshTokens.ForEach(item =>
             {
@@ -715,15 +731,15 @@ namespace CET.Service
                     await _cetRepository.UpdateRangeAsync(entities: revokedUserRefreshTokens);
                     await dbTransaction.CommitAsync();
                     response.Result.Success = true;
-                    response.Result.Data = new ResultMessage(){ Message = "Logout success fully", Success = true };
+                    response.Result.Data = new ResultMessage() { Message = "Logout success fully", Success = true };
                     response.StatusCode = StatusCodes.Status200OK;
                     return response;
                 }
-                catch(Exception ex)
+                catch (Exception ex)
                 {
                     _logger.LogError(ex.Message);
                     await dbTransaction.RollbackAsync();
-                    errors.Add(new ErrorDetail(){ Error = "An error occured while revoked token.", ErrorScope = CErrorScope.PageSumarry });
+                    errors.Add(new ErrorDetail() { Error = "An error occured while revoked token.", ErrorScope = CErrorScope.PageSumarry });
                     response.Result.Errors = errors;
                     response.Result.Success = false;
                     response.StatusCode = StatusCodes.Status500InternalServerError;
