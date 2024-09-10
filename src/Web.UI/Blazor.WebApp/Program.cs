@@ -9,6 +9,7 @@ builder.Services.AddRazorComponents()
 
 builder.Services.AddScoped(sp => new HttpClient { BaseAddress = new Uri("https://localhost:7035") });
 builder.Services.AddScoped<ApiClient>();
+builder.Services.AddScoped<StateContainer>();
 
 var app = builder.Build();
 

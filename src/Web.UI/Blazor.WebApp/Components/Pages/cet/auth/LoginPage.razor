@@ -3,6 +3,9 @@
 @layout AuthLayout
 @rendermode InteractiveServer
 @inject ApiClient ApiClient
+@inject NavigationManager NavigationManager
+@inject StateContainer StateContainer
+
 <section class="p-3 p-md-4 p-xl-5">
     <div class="container">
         <div class="card border-light-subtle shadow-sm">
@@ -133,6 +136,13 @@
 
         if (response != null && response.Success)
         {
+            if(response.Data != null && response.Data.TwoFactorEnabled)
+            {
+                StateContainer.SetMessage(response?.Data?.Message ?? string.Empty);
+                @* ToastHelper.ToastInfo<LoginResponseDto>(toastModel: ToastModel,
+                    toastType: CToastType.Info, message: response?.Data?.Message ?? string.Empty); *@
+                NavigationManager.NavigateTo($"/two-factor-authentication?email={Uri.EscapeDataString(LoginModel.Email)}");
+            }
             // Handle success (e.g., navigate or display success message)
         }
         else

@@ -2,6 +2,7 @@
 @using Blazor.WebApp.Models
 @layout AuthLayout
 @inject NavigationManager NavigationManager
+@inject StateContainer StateContainer
 @rendermode InteractiveServer
 
 <section id="main-site">
@@ -12,23 +13,24 @@
             <img src="images/auth/2FA.png" class="img-fluid" alt="">
 
             <p class="font-poppins text-light">We've sent a varification code to</p>
-            <p class="font-poppins text-light">+91 ********65</p>
+            <p class="font-poppins text-light">@Email</p>
         </div>
 
         <!-- form -->
-        <EditForm FormName="TwoFactorForm" Model="TwoFactorModel" OnInvalidSubmit="TwoFactorAuthenticationAsync"
+        <EditForm FormName="TwoFactorForm" Model="TwoFactorModel" OnValidSubmit="TwoFactorAuthenticationAsync"
             class="py-2">
             <DataAnnotationsValidator />
             <h4 class="font-poppins text-light">Enter your OTP Code Here:</h4>
 
             <div class="col py-1 d-flex gap-1">
-                <InputText @bind-Value="TwoFactorModel.Digit1" type="number" class="form-control" />
-                <InputText @bind-Value="TwoFactorModel.Digit2" type="number" class="form-control" />
-                <InputText @bind-Value="TwoFactorModel.Digit3" type="number" class="form-control" />
-                <InputText @bind-Value="TwoFactorModel.Digit4" type="number" class="form-control" />
-                <InputText @bind-Value="TwoFactorModel.Digit5" type="number" class="form-control" />
-                <InputText @bind-Value="TwoFactorModel.Digit6" type="number" class="form-control" />
+                <InputText @bind-Value="TwoFactorModel.Digit1" maxlength="1" type="tel" class="form-control" />
+                <InputText @bind-Value="TwoFactorModel.Digit2" maxlength="1" type="tel" class="form-control" />
+                <InputText @bind-Value="TwoFactorModel.Digit3" maxlength="1" type="tel" class="form-control" />
+                <InputText @bind-Value="TwoFactorModel.Digit4" maxlength="1" type="tel" class="form-control" />
+                <InputText @bind-Value="TwoFactorModel.Digit5" maxlength="1" type="tel" class="form-control" />
+                <InputText @bind-Value="TwoFactorModel.Digit6" maxlength="1" type="tel" class="form-control" />
             </div>
+
 
             <div class="col">
                 <button type="submit" class="btn">Verify</button>
@@ -43,36 +45,42 @@
     </div>
 </section>
 
+@if (ToastModel.IsVisible)
+{
+    <Blazor.WebApp.Components.Toasts.Toast ToastModel="ToastModel" />
+}
+
 <link rel="stylesheet" href="css/auth/2fa.css">
 
 
 @code {
-    private TwoFactorModel TwoFactorModel = new();
+    private ToastModel ToastModel { get; set; } = new();
+    private TwoFactorModel TwoFactorModel { get; set; } = new();
 
     [Parameter]
     public string Email { get; set; } = string.Empty;
 
     protected override async Task OnParametersSetAsync()
     {
-        @* var uri = new Uri(NavigationManager.Uri);
-var query = Microsoft.AspNetCore.WebUtilities.QueryHelpers.ParseQuery(uri.Query);
-if (query.TryGetValue("email", out var email))
-{
-TwoFactorModel.Email = email.ToString();
-}
-
-await base.OnParametersSetAsync(); *@
-
         var fullUrl = NavigationManager.Uri;
         Email = QueryStringHelper.GetQueryParameter(fullUrl, "email", email => email) ?? string.Empty;
         TwoFactorModel.Email = Email;
 
+        var message = StateContainer.GetMessage();
+
+        // Display the message in a toast notification
+        if (!string.IsNullOrWhiteSpace(message))
+        {
+            ToastHelper.ToastInfo<LoginResponseDto>(toastModel: ToastModel,
+                toastType: CToastType.Info, message: message);
+        }
         await base.OnParametersSetAsync();
     }
 
     private async Task TwoFactorAuthenticationAsync()
     {
         var fullCode = TwoFactorModel.GetFullCode();
+        Console.WriteLine(fullCode);
         await Task.CompletedTask;
     }
 

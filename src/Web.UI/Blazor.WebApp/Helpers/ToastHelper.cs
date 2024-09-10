@@ -28,5 +28,16 @@ namespace Blazor.WebApp
                 model.Title = $"Notification {toastType.ToString()}";
             }
         }
+
+        public static void ToastInfo<T>(ToastModel toastModel,
+            CToastType toastType = CToastType.Info, string? message = null)
+        {
+            toastModel.IsVisible = true;
+            toastModel.Message = message ?? string.Empty;
+            toastModel.Position = CToastPosition.TopRight;
+            toastModel.Status = toastType;
+            toastModel.TimeToClose = 5;
+            toastModel.Title = $"Notification {toastType.ToString()}";
+        }
     }
 }
