@@ -3,7 +3,6 @@
 @layout AuthLayout
 @inject NavigationManager NavigationManager
 @inject StateContainer StateContainer
-@rendermode InteractiveServer
 
 <section id="main-site">
     <div class="glass text-center">
@@ -16,24 +15,36 @@
             <p class="font-poppins text-light">@Email</p>
         </div>
 
-        <!-- form -->
         <EditForm FormName="TwoFactorForm" Model="TwoFactorModel" OnValidSubmit="TwoFactorAuthenticationAsync"
             class="py-2">
-            <DataAnnotationsValidator />
+            @if (!Errors.IsNullOrEmpty())
+            {
+                <div class="alert alert-danger text-start" id="@IdFrameError">
+                    <FieldErrorComponent Errors="Errors" FieldName="Email_Error" IdFrame="@IdFrameError" ClassName="d-block"/>
+                    <FieldErrorComponent Errors="Errors" FieldName="Code_Error" IdFrame="@IdFrameError"/>
+                </div>
+            }
             <h4 class="font-poppins text-light">Enter your OTP Code Here:</h4>
 
-            <div class="col py-1 d-flex gap-1">
-                <InputText @bind-Value="TwoFactorModel.Digit1" maxlength="1" type="tel" class="form-control" />
-                <InputText @bind-Value="TwoFactorModel.Digit2" maxlength="1" type="tel" class="form-control" />
-                <InputText @bind-Value="TwoFactorModel.Digit3" maxlength="1" type="tel" class="form-control" />
-                <InputText @bind-Value="TwoFactorModel.Digit4" maxlength="1" type="tel" class="form-control" />
-                <InputText @bind-Value="TwoFactorModel.Digit5" maxlength="1" type="tel" class="form-control" />
-                <InputText @bind-Value="TwoFactorModel.Digit6" maxlength="1" type="tel" class="form-control" />
+            <div class="col ps-1 pe-1 py-1 d-flex gap-1 border border-1 border-info rounded">
+                <InputText @bind-Value="TwoFactorModel.Digit1" name="digit1" maxlength="1" type="tel"
+                    class="form-control" @onpaste="HandlePaste" @oninput="@(e => MoveToNext(e, "Digit2"))"
+                    id="Digit1" />
+                <InputText @bind-Value="TwoFactorModel.Digit2" maxlength="1" type="tel" class="form-control"
+                    @oninput="@(e => MoveToNext(e, "Digit3"))" id="Digit2" />
+                <InputText @bind-Value="TwoFactorModel.Digit3" maxlength="1" type="tel" class="form-control"
+                    @oninput="@(e => MoveToNext(e, "Digit4"))" id="Digit3" />
+                <InputText @bind-Value="TwoFactorModel.Digit4" maxlength="1" type="tel" class="form-control"
+                    @oninput="@(e => MoveToNext(e, "Digit5"))" id="Digit4" />
+                <InputText @bind-Value="TwoFactorModel.Digit5" maxlength="1" type="tel" class="form-control"
+                    @oninput="@(e => MoveToNext(e, "Digit6"))" id="Digit5" />
+                <InputText @bind-Value="TwoFactorModel.Digit6" maxlength="1" type="tel" class="form-control"
+                    id="Digit6" />
+                <ValidationMessage For="@(() => TwoFactorModel.Code)" />
             </div>
 
-
             <div class="col">
-                <button type="submit" class="btn">Verify</button>
+                <button type="submit" class="btn mt-2 mb-2">Verify</button>
             </div>
 
             <div class="py-1">
@@ -45,34 +56,24 @@
     </div>
 </section>
 
-@if (ToastModel.IsVisible)
-{
-    <Blazor.WebApp.Components.Toasts.Toast ToastModel="ToastModel" />
-}
-
 <link rel="stylesheet" href="css/auth/2fa.css">
 
 
 @code {
-    private ToastModel ToastModel { get; set; } = new();
     private TwoFactorModel TwoFactorModel { get; set; } = new();
-
-    [Parameter]
-    public string Email { get; set; } = string.Empty;
+    [Parameter] public string Email { get; set; } = string.Empty;
+    private List<ErrorDetail> Errors = new();
+    private string IdFrameError = "frame-error-verify";
 
     protected override async Task OnParametersSetAsync()
     {
         var fullUrl = NavigationManager.Uri;
         Email = QueryStringHelper.GetQueryParameter(fullUrl, "email", email => email) ?? string.Empty;
         TwoFactorModel.Email = Email;
-
         var message = StateContainer.GetMessage();
-
-        // Display the message in a toast notification
         if (!string.IsNullOrWhiteSpace(message))
         {
-            ToastHelper.ToastInfo<LoginResponseDto>(toastModel: ToastModel,
-                toastType: CToastType.Info, message: message);
+            _toastService.ShowInfo(message);
         }
         await base.OnParametersSetAsync();
     }
@@ -80,8 +81,56 @@
     private async Task TwoFactorAuthenticationAsync()
     {
         var fullCode = TwoFactorModel.GetFullCode();
-        Console.WriteLine(fullCode);
+        var response = await ApiClient.PostAsync<ConfirmTwoFactorAuthenticationRequestDto, LoginResponseDto>(
+        uri: "api/v1/cet/auth/confirmtwofactor",
+        data: new ConfirmTwoFactorAuthenticationRequestDto() { Code = fullCode, Email = Email });
+        if (response != null)
+        {
+            var errorMessage = ToastHelper.ErrorMessage(response);
+            if (string.IsNullOrEmpty(errorMessage))
+            {
+                Errors = response.Errors ?? new();
+            }
+            if (response.Success)
+            {
+                // save new tokens to localstorage
+
+                // redirect user to currently page requested
+            }
+            else
+            {
+                if (!string.IsNullOrEmpty(errorMessage))
+                {
+                    _toastService.ShowError(errorMessage);
+                }
+            }
+        }
         await Task.CompletedTask;
     }
+    private async Task HandlePaste(ClipboardEventArgs e)
+    {
+        var clipboardText = await GetClipboardTextAsync();
+        if (clipboardText.Length == 6)
+        {
+            TwoFactorModel.Digit1 = clipboardText[0].ToString();
+            TwoFactorModel.Digit2 = clipboardText[1].ToString();
+            TwoFactorModel.Digit3 = clipboardText[2].ToString();
+            TwoFactorModel.Digit4 = clipboardText[3].ToString();
+            TwoFactorModel.Digit5 = clipboardText[4].ToString();
+            TwoFactorModel.Digit6 = clipboardText[5].ToString();
+        }
+    }
+    private async Task<string> GetClipboardTextAsync()
+    {
+        var clipboardText = await _jsRuntime.InvokeAsync<string>("navigator.clipboard.readText");
+        return clipboardText;
+    }
 
+    private async Task MoveToNext(ChangeEventArgs e, string nextElementId)
+    {
+        if (!string.IsNullOrEmpty(e.Value?.ToString()))
+        {
+            await _jsRuntime.InvokeVoidAsync("moveToNext", nextElementId);
+        }
+    }
 }

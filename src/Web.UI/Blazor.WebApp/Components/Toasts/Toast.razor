@@ -51,10 +51,10 @@
     <div class="toast-container position-fixed @ToastModel.Position.ToDescription() p-3">
         <div id="liveToast" class="toast show" role="alert" aria-live="assertive" aria-atomic="true"
             data-bs-autohide="false">
-            <div class="toast-header bg-@ToastModel.Status.ToDescription() @GetTextColor()">
-                <i class="@GetStatusIcon() me-2" style="font-size: 1.5rem;"></i>
+            <div class="toast-header p-1 bg-@ToastModel.Status.ToDescription() @GetTextColor()">
+                <i class="@GetStatusIcon() me-2 ms-2" style="font-size: 1rem;"></i>
                 <strong class="me-auto">@ToastModel.Title</strong>
-                <small>11 mins ago</small>
+                @* <small>11 mins ago</small> *@
                 <button type="button" class="btn-close" @onclick="() => ToastModel.IsVisible = false"
                     data-bs-dismiss="toast" aria-label="Close"></button>
             </div>

@@ -1,9 +1,25 @@
 using Core.Domain;
+using Microsoft.JSInterop;
 
 namespace Blazor.WebApp
 {
     public class ToastHelper
     {
+        public static string ErrorMessage<T>(ResponseResult<T>? response)
+        {
+            string pageErrors = string.Empty;
+            if (response != null)
+            {
+                var errorList = response.Errors.Where(i => i.ErrorScope != CErrorScope.Field)
+                .Select(i => i.Error)
+                .ToList();
+                if (!errorList.IsNullOrEmpty())
+                {
+                    pageErrors = errorList.ToMultilineString();
+                }
+            }
+            return pageErrors;
+        }
         public static void ToastError<T>(ResponseResult<T>? response,
             ToastModel model, CToastType toastType = CToastType.Error)
         {

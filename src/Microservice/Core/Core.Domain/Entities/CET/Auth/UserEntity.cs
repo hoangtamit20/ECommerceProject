@@ -1,6 +1,4 @@
 using System.ComponentModel.DataAnnotations.Schema;
-using Core.Domain.Entities.CET.Auth;
-using Core.Domain.Extensions.JsonSerialized;
 using Microsoft.AspNetCore.Identity;
 
 namespace Core.Domain

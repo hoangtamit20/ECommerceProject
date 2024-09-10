@@ -5,14 +5,42 @@
     [Parameter]
     public string FieldName { get; set; } = string.Empty;
 
+    [Parameter]
+    public string ClassName { get; set; } = string.Empty;
+    [Parameter]
+    public string IdFrame { get; set; } = string.Empty;
+
     private string GetErrorForField()
     {
-        var error = Errors?.FirstOrDefault(e => e.ErrorScope == CErrorScope.Field && e.Field == FieldName);
-        return error?.Error ?? string.Empty;
+        var error = Errors?.Where(e => e.ErrorScope == CErrorScope.Field && e.Field == FieldName)
+        .Select(err => err.Error)
+        .ToList()
+        .ToMultilineString();
+        return error ?? string.Empty;
+    }
+
+    protected override async Task OnAfterRenderAsync(bool firstRender)
+    {
+        if (!string.IsNullOrEmpty(GetErrorForField()))
+        {
+            await Task.Delay(delay: TimeSpan.FromSeconds(value: 5));
+            if (!Errors.IsNullOrEmpty())
+            {
+                await JavaScriptHelper.CloseErrorAsync(jSRuntime: _jsRuntime, idFrame: IdFrame, duration: 0);
+            }
+            ClearErrors();
+            StateHasChanged();
+        }
+        await Task.CompletedTask;
+    }
+
+    private void ClearErrors()
+    {
+        Errors.Clear();
     }
 }
 
 @if (!string.IsNullOrEmpty(GetErrorForField()))
 {
-    <span class="text-danger">@GetErrorForField()</span>
+    <span class="text-danger @ClassName">@GetErrorForField()</span>
 }

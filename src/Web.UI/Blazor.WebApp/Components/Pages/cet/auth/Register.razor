@@ -1,8 +1,6 @@
 @page "/register"
 @using Blazor.WebApp.Components.Errors
 @layout AuthLayout
-@inject ApiClient ApiClient
-@rendermode InteractiveServer
 
 <EditForm Model="RegisterRequestDto" OnValidSubmit="RegisterUserAsync" FormName="registerForm">
     <DataAnnotationsValidator />

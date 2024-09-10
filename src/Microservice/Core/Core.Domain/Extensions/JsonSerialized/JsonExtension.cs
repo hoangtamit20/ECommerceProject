@@ -1,6 +1,6 @@
 using Newtonsoft.Json;
 
-namespace Core.Domain.Extensions.JsonSerialized
+namespace Core.Domain
 {
     public static class JsonExtensions
     {

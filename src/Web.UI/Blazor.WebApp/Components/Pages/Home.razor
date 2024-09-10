@@ -1,7 +1,19 @@
 ﻿@page "/"
 
+
 <PageTitle>Home</PageTitle>
 
 <h1>Hello, world!</h1>
 
 Welcome to your new app.
+@* 
+
+
+<h1>Toast Demo</h1>
+
+To show a toast just click one of the buttons below.
+
+<button class="btn btn-info" @onclick="@(() => _toastService.ShowInfo("I'm an INFO message"))">Info Toast</button>
+<button class="btn btn-success" @onclick="@(() => _toastService.ShowSuccess("I'm a SUCCESS message with a custom title"))">Success Toast</button>
+<button class="btn btn-warning" @onclick="@(() => _toastService.ShowWarning("I'm a WARNING message"))">Warning Toast</button>
+<button class="btn btn-danger" @onclick="@(() => _toastService.ShowError("I'm an ERROR message"))">Error Toast</button> *@

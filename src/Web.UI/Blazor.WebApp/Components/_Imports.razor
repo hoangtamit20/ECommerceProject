@@ -6,7 +6,13 @@
 @using static Microsoft.AspNetCore.Components.Web.RenderMode
 @using Microsoft.AspNetCore.Components.Web.Virtualization
 @using Microsoft.JSInterop
-@using Blazor.WebApp
+@using Blazor.WebApp.Components.Errors
 @using Blazor.WebApp.Components
 @using Core.Domain
 @using Blazor.WebApp.Components.Layout
+@using Blazored.Toast
+@using Blazored.Toast.Configuration
+@using Blazored.Toast.Services
+@inject ApiClient ApiClient
+@inject IToastService _toastService
+@inject IJSRuntime _jsRuntime

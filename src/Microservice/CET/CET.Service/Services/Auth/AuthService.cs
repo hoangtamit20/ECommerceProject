@@ -289,6 +289,7 @@ namespace CET.Service
                         Error = $"Cannot found any user with email '{twoFactorDto.Email}'",
                         ErrorScope = CErrorScope.PageSumarry
                     });
+                    response.Result.Errors = errors;
                     return response;
                 }
                 var userTokenEntity = await _cetRepository.GetSet<UserTokenCustomEntity>(utc => utc.Token == twoFactorDto.Code

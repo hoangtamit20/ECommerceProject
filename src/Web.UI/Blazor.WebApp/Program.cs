@@ -1,5 +1,6 @@
 using Blazor.WebApp;
 using Blazor.WebApp.Components;
+using Blazored.Toast;
 
 var builder = WebApplication.CreateBuilder(args);
 
@@ -10,6 +11,7 @@ builder.Services.AddRazorComponents()
 builder.Services.AddScoped(sp => new HttpClient { BaseAddress = new Uri("https://localhost:7035") });
 builder.Services.AddScoped<ApiClient>();
 builder.Services.AddScoped<StateContainer>();
+builder.Services.AddBlazoredToast();
 
 var app = builder.Build();
 
