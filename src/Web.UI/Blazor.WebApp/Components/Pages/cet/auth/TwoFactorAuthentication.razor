@@ -8,7 +8,7 @@
     <div class="glass text-center">
 
         <div class="title">
-            <h1 class="font-poppins text-white">Two Step Verification</h1>
+            <h1 class="font-poppins fw-bold text-light">Two Step Verification</h1>
             <img src="images/auth/2FA.png" class="img-fluid" alt="">
 
             <p class="font-poppins text-light">We've sent a varification code to</p>
@@ -20,13 +20,14 @@
             @if (!Errors.IsNullOrEmpty())
             {
                 <div class="alert alert-danger text-start" id="@IdFrameError">
-                    <FieldErrorComponent Errors="Errors" FieldName="Email_Error" IdFrame="@IdFrameError" ClassName="d-block"/>
-                    <FieldErrorComponent Errors="Errors" FieldName="Code_Error" IdFrame="@IdFrameError"/>
+                    <FieldErrorComponent Errors="Errors" FieldName="Email_Error" IdFrame="@IdFrameError"
+                        ClassName="d-block" />
+                    <FieldErrorComponent Errors="Errors" FieldName="Code_Error" IdFrame="@IdFrameError" />
                 </div>
             }
             <h4 class="font-poppins text-light">Enter your OTP Code Here:</h4>
 
-            <div class="col ps-1 pe-1 py-1 d-flex gap-1 border border-1 border-info rounded">
+            <div class="col ps-1 pe-1 py-1 d-flex gap-1 border border-2 border-secondary rounded">
                 <InputText @bind-Value="TwoFactorModel.Digit1" name="digit1" maxlength="1" type="tel"
                     class="form-control" @onpaste="HandlePaste" @oninput="@(e => MoveToNext(e, "Digit2"))"
                     id="Digit1" />
@@ -56,6 +57,11 @@
     </div>
 </section>
 
+@if (IsLoading)
+{
+    <Blazor.WebApp.Components.Spinners.LoadingApi />
+}
+
 <link rel="stylesheet" href="css/auth/2fa.css">
 
 
@@ -64,6 +70,7 @@
     [Parameter] public string Email { get; set; } = string.Empty;
     private List<ErrorDetail> Errors = new();
     private string IdFrameError = "frame-error-verify";
+    private bool IsLoading = false;
 
     protected override async Task OnParametersSetAsync()
     {
@@ -80,30 +87,40 @@
 
     private async Task TwoFactorAuthenticationAsync()
     {
-        var fullCode = TwoFactorModel.GetFullCode();
-        var response = await ApiClient.PostAsync<ConfirmTwoFactorAuthenticationRequestDto, LoginResponseDto>(
-        uri: "api/v1/cet/auth/confirmtwofactor",
-        data: new ConfirmTwoFactorAuthenticationRequestDto() { Code = fullCode, Email = Email });
-        if (response != null)
+        try
         {
-            var errorMessage = ToastHelper.ErrorMessage(response);
-            if (string.IsNullOrEmpty(errorMessage))
+            IsLoading = true;
+            var fullCode = TwoFactorModel.GetFullCode();
+            var response = await ApiClient.PostAsync<ConfirmTwoFactorAuthenticationRequestDto, LoginResponseDto>(
+            uri: "api/v1/cet/auth/confirmtwofactor",
+            data: new ConfirmTwoFactorAuthenticationRequestDto() { Code = fullCode, Email = Email });
+            IsLoading = false;
+            if (response != null)
             {
-                Errors = response.Errors ?? new();
-            }
-            if (response.Success)
-            {
-                // save new tokens to localstorage
-
-                // redirect user to currently page requested
-            }
-            else
-            {
-                if (!string.IsNullOrEmpty(errorMessage))
+                var errorMessage = ToastHelper.ErrorMessage(response);
+                if (string.IsNullOrEmpty(errorMessage))
                 {
-                    _toastService.ShowError(errorMessage);
+                    Errors = response.Errors ?? new();
+                }
+                if (response.Success)
+                {
+                    // save new tokens to localstorage
+
+                    // redirect user to currently page requested
+                }
+                else
+                {
+                    if (!string.IsNullOrEmpty(errorMessage))
+                    {
+                        _toastService.ShowError(errorMessage);
+                    }
                 }
             }
+        }
+        catch (Exception ex)
+        {
+            IsLoading = false;
+            _toastService.ShowError(ex.Message);
         }
         await Task.CompletedTask;
     }

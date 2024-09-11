@@ -108,11 +108,6 @@
 {
     <Blazor.WebApp.Components.Spinners.LoadingApi />
 }
-@* 
-@if (ToastModel.IsVisible == true)
-{
-    <Blazor.WebApp.Components.Toasts.Toast ToastModel=ToastModel />
-} *@
 
 <link rel="stylesheet" href="auth\login.css">
 
@@ -129,7 +124,7 @@
         {
             isLoading = true;
             var response = await ApiClient.PostAsync<LoginRequestDto, LoginResponseDto>(
-            uri: "api/v1/cet/auth/systemlogin", data: LoginModel);
+            uri: "api/v1/cet/auth/systemlogin", data: LoginModel, requestType: CRequestType.Public);
 
             errors = response?.Errors ?? new();
 
@@ -143,6 +138,11 @@
                     NavigationManager.NavigateTo($"/two-factor-authentication?email={Uri.EscapeDataString(LoginModel.Email)}");
                 }
                 // Handle success (e.g., navigate or display success message)
+                else
+                {
+                    await _localStorage.SetTokenAsync(item: response.Data.Adapt<UserSession>().ToJson());
+                    NavigationManager.NavigateTo(StateContainer.PreviousUrl ?? "/");
+                }
             }
             else
             {
@@ -151,8 +151,6 @@
                 {
                     _toastService.ShowError(errorMessage);
                 }
-                @* ToastHelper.ToastError<LoginResponseDto>(response: response,
-                model: ToastModel, toastType: CToastType.Error); *@
             }
         }
         catch (Exception ex)

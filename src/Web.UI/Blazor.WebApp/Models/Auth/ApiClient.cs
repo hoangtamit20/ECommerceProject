@@ -5,20 +5,23 @@ namespace Blazor.WebApp
 {
     public class ApiClient
     {
-        private readonly HttpClient _httpClient;
+        private readonly HttpClientHelper _httpClientHelper;
 
-        public ApiClient(HttpClient httpClient)
+        public ApiClient(HttpClientHelper httpClientHelper)
         {
-            _httpClient = httpClient;
+            _httpClientHelper = httpClientHelper;
         }
 
 
-        public async Task<ResponseResult<TResponse>?> PostAsync<TRequest, TResponse>(string uri, TRequest data)
+        public async Task<ResponseResult<TResponse>?> PostAsync<TRequest, TResponse>(string uri, TRequest data,
+            CRequestType requestType = CRequestType.Private)
         {
+            var httpClient = requestType == CRequestType.Private ? await _httpClientHelper.GetPrivateHttpClientAsync() 
+                : await _httpClientHelper.GetPublicHttpClientAsync();
             var jsonContent = Newtonsoft.Json.JsonConvert.SerializeObject(data);
             var content = new StringContent(jsonContent, Encoding.UTF8, "application/json");
 
-            var response = await _httpClient.PostAsync(uri, content);
+            var response = await httpClient.PostAsync(uri, content);
             var responseData = await response.Content.ReadAsStringAsync();
 
             // Deserialize into ApiResponse<TResponse>

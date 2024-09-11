@@ -1,5 +1,6 @@
 using Blazor.WebApp;
 using Blazor.WebApp.Components;
+using Blazored.LocalStorage;
 using Blazored.Toast;
 
 var builder = WebApplication.CreateBuilder(args);
@@ -7,9 +8,11 @@ var builder = WebApplication.CreateBuilder(args);
 // Add services to the container.
 builder.Services.AddRazorComponents()
     .AddInteractiveServerComponents();
-
-builder.Services.AddScoped(sp => new HttpClient { BaseAddress = new Uri("https://localhost:7035") });
+builder.Services.AddBlazoredLocalStorage();
 builder.Services.AddScoped<ApiClient>();
+builder.Services.AddHttpClient();
+builder.Services.AddScoped<LocalStorageService>();
+builder.Services.AddScoped<HttpClientHelper>();
 builder.Services.AddScoped<StateContainer>();
 builder.Services.AddBlazoredToast();
 
