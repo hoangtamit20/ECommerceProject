@@ -1,4 +1,5 @@
 ﻿@using Blazor.WebApp.Components
+@inject NavigationService NavigationService
 <!DOCTYPE html>
 <html lang="en">
 
@@ -22,3 +23,11 @@
 </body>
 
 </html>
+
+@code {
+    protected override void OnInitialized()
+    {
+        base.OnInitialized();
+        NavigationService.TrackNavigation();
+    }
+}

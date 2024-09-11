@@ -9,11 +9,12 @@ var builder = WebApplication.CreateBuilder(args);
 builder.Services.AddRazorComponents()
     .AddInteractiveServerComponents();
 builder.Services.AddBlazoredLocalStorage();
-builder.Services.AddScoped<ApiClient>();
 builder.Services.AddHttpClient();
-builder.Services.AddScoped<LocalStorageService>();
 builder.Services.AddScoped<HttpClientHelper>();
+builder.Services.AddScoped<ApiClient>();
+builder.Services.AddScoped<LocalStorageService>();
 builder.Services.AddScoped<StateContainer>();
+builder.Services.AddScoped<NavigationService>();
 builder.Services.AddBlazoredToast();
 
 var app = builder.Build();

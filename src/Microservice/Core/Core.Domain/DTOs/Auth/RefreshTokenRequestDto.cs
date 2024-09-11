@@ -9,5 +9,6 @@ namespace Core.Domain
         [Required(ErrorMessage = "{0} is required.")]
         [GuidFormat]
         public string RefreshToken { get; set; } = string.Empty;
+        public string AccessToken { get; set; } = string.Empty;
     }
 }

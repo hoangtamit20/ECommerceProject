@@ -8,6 +8,7 @@ namespace Core.Domain
         public string OwnerPhone { get; set; } = string.Empty;
         public string CompanyName { get; set; } = string.Empty;
         public string CompanyBranch { get; set; } = string.Empty;
+        public string ClientEndpoint { get; set; } = string.Empty;
 
     }
 }

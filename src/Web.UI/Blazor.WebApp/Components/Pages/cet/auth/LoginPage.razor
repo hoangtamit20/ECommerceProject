@@ -104,7 +104,7 @@
     </div>
 </section>
 
-@if (isLoading)
+@if (LoadingStatus.IsLoading)
 {
     <Blazor.WebApp.Components.Spinners.LoadingApi />
 }
@@ -117,18 +117,36 @@
     private LoginRequestDto LoginModel { get; set; } = new LoginRequestDto();
     private List<ErrorDetail> errors = new();
     private ToastModel ToastModel = new();
-    private bool isLoading = false;
+    private CLoadingStatus LoadingStatus { get; set; } = new();
+
+    protected override async Task OnInitializedAsync()
+    {
+        await AuthenticationHelper.AuthenticationAsync(loadingStatus: LoadingStatus, apiClient: ApiClient,
+            stateContainer: StateContainer, navigationManager: NavigationManager,
+            localStorage: _localStorage, toastService: _toastService);
+    }
+
+    protected override async Task OnAfterRenderAsync(bool firstRender)
+    {
+        if (!string.IsNullOrEmpty(StateContainer.Message))
+        {
+            _toastService.ShowInfo(StateContainer.Message);
+            StateContainer.Message = string.Empty;
+        }
+        await Task.CompletedTask;
+    }
+
     private async Task LoginAsync()
     {
         try
         {
-            isLoading = true;
+            LoadingStatus.IsLoading = true;
             var response = await ApiClient.PostAsync<LoginRequestDto, LoginResponseDto>(
-            uri: "api/v1/cet/auth/systemlogin", data: LoginModel, requestType: CRequestType.Public);
+            uri: $"{APIEndpoint.CET_Auth_System_Login}", data: LoginModel, requestType: CRequestType.Public);
 
             errors = response?.Errors ?? new();
 
-            isLoading = false;
+            LoadingStatus.IsLoading = false;
 
             if (response != null && response.Success)
             {
@@ -155,7 +173,7 @@
         }
         catch (Exception ex)
         {
-            isLoading = false;
+            LoadingStatus.IsLoading = false;
             _toastService.ShowError(ex.Message);
         }
     }

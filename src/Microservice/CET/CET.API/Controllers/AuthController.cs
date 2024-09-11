@@ -20,6 +20,16 @@ namespace CET.API.Controllers
             _userService = userService;
         }
 
+        [HttpGet("authentication")]
+        [Authorize]
+        public async Task<IActionResult> IsAuthentication()
+        {
+            return Ok(await Task.FromResult(new ResponseResult<string>()
+            {
+                Data = $"You are already authentication.",
+                Success = true
+            }));
+        }
 
         [HttpPost("systemlogin")]
         public async Task<IActionResult> SystemLogin(LoginRequestDto loginDto)
@@ -36,7 +46,6 @@ namespace CET.API.Controllers
         }
 
         [HttpPost("refreshtoken")]
-        [Authorize]
         public async Task<IActionResult> RefreshToken(RefreshTokenRequestDto refreshTokenDto)
         {
             var result = await _authService.RefreshTokenAsync(refreshTokenDto: refreshTokenDto, modelState: ModelState);
@@ -51,7 +60,7 @@ namespace CET.API.Controllers
         }
 
         [HttpGet("emailconfirm")]
-        public async Task<IActionResult> ConfirmEmailRegistration([FromQuery]ConfirmEmailDto confirmEmailDto)
+        public async Task<IActionResult> ConfirmEmailRegistration([FromQuery] ConfirmEmailDto confirmEmailDto)
         {
             var result = await _userService.ConfirmedEmailAsync(confirmEmailDto: confirmEmailDto, modelState: ModelState);
             return StatusCode(statusCode: result.StatusCode, value: result.Result);

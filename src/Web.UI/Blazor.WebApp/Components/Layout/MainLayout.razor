@@ -1,4 +1,6 @@
 ﻿@inherits LayoutComponentBase
+@inject StateContainer StateContainer
+@inject NavigationManager NavigationManager
 
 <div class="page">
     <div class="sidebar">
@@ -6,9 +8,19 @@
     </div>
 
     <main>
-        <div class="top-row px-4">
+        <div class="top-row px-4 gap-2">
             <a href="https://learn.microsoft.com/aspnet/core/" target="_blank">About</a>
+            @if (IsAuthentication)
+            {
+                <button @onclick="LogOutAsync" class="btn btn-outline-secondary"><i
+                        class="bi bi-box-arrow-right me-2"></i>Log out</button>
+            }
+            else
+            {
+                
+            }
         </div>
+
 
         <article class="content px-4">
             @Body
@@ -16,13 +28,8 @@
     </main>
 </div>
 
-<BlazoredToasts Position="ToastPosition.TopRight"
-    Timeout="10"
-    ShowProgressBar="true"
-    IconType="IconType.Blazored"
-    SuccessIcon="bi bi-hand-thumbs-up"
-    WarningIcon="bi bi-exclamation-triangle"
-    InfoIcon="bi bi-info-circle"
+<BlazoredToasts Position="ToastPosition.TopRight" Timeout="10" ShowProgressBar="true" IconType="IconType.Blazored"
+    SuccessIcon="bi bi-hand-thumbs-up" WarningIcon="bi bi-exclamation-triangle" InfoIcon="bi bi-info-circle"
     ErrorIcon="bi bi-bug" />
 
 <div id="blazor-error-ui">
@@ -30,3 +37,70 @@
     <a href="" class="reload">Reload</a>
     <a class="dismiss">🗙</a>
 </div>
+
+
+@if (LoadingStatus.IsLoading)
+{
+    <Blazor.WebApp.Components.Spinners.LoadingApi />
+}
+
+
+
+
+@code
+{
+    private CLoadingStatus LoadingStatus { get; set; } = new();
+    private bool IsAuthentication { get; set; } = false;
+
+    protected override async Task OnInitializedAsync()
+    {
+        try
+        {
+            IsAuthentication = await AuthenticationHelper.IsAuthenticationAsync(ApiClient, _localStorage);
+        }
+        catch (Exception ex)
+        {
+            _toastService.ShowError(ex.Message);
+        }
+        await Task.CompletedTask;
+    }
+
+    private async Task LogOutAsync()
+    {
+        try
+        {
+            LoadingStatus.IsLoading = true;
+            var response = await ApiClient.PostAsync<bool, ResultMessage>(uri: APIEndpoint.CET_Auth_LogOut,
+            data: false, requestType: CRequestType.Private);
+            LoadingStatus.IsLoading = false;
+            if (response != null)
+            {
+                if (response.Success)
+                {
+                    if (response.Data != null)
+                    {
+                        StateContainer.Message = response.Data.Message;
+                        await _localStorage.RemoveTokenAsync();
+                        NavigationManager.NavigateTo(uri: "/login");
+                    }
+                    else
+                    {
+                        _toastService.ShowWarning(message: response.Errors.Select(err =>
+                        err.Error).ToList().ToMultilineString());
+                    }
+                }
+                else
+                {
+                    _toastService.ShowError(message: response.Errors.Select(err =>
+                    err.Error).ToList().ToMultilineString());
+                }
+            }
+        }
+        catch (Exception ex)
+        {
+            LoadingStatus.IsLoading = false;
+            _toastService.ShowError(ex.Message);
+        }
+        await Task.CompletedTask;
+    }
+}

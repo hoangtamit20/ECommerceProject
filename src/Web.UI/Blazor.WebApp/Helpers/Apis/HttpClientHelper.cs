@@ -17,6 +17,7 @@ namespace Blazor.WebApp
         public async Task<HttpClient> GetPrivateHttpClientAsync()
         {
             var client = _httpClient.CreateClient("SystemApiClient");
+            client.BaseAddress = new Uri("https://localhost:7035");
             var token = await _localStorage.GetTokenAsync();
             if (string.IsNullOrEmpty(token))
             {
@@ -34,6 +35,7 @@ namespace Blazor.WebApp
         public async Task<HttpClient> GetPublicHttpClientAsync()
         {
             var client = _httpClient.CreateClient("SystemApiClient");
+            client.BaseAddress = new Uri("https://localhost:7035");
             client.DefaultRequestHeaders.Remove(name: HeaderKey);
             return await Task.FromResult(client);
         }

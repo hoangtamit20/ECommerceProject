@@ -57,7 +57,7 @@
     </div>
 </section>
 
-@if (IsLoading)
+@if (LoadingStatus.IsLoading)
 {
     <Blazor.WebApp.Components.Spinners.LoadingApi />
 }
@@ -70,7 +70,21 @@
     [Parameter] public string Email { get; set; } = string.Empty;
     private List<ErrorDetail> Errors = new();
     private string IdFrameError = "frame-error-verify";
-    private bool IsLoading = false;
+    private CLoadingStatus LoadingStatus { get; set; } = new();
+
+    protected override async Task OnInitializedAsync()
+    {
+        await AuthenticationHelper.AuthenticationAsync(loadingStatus: LoadingStatus, apiClient: ApiClient,
+            stateContainer: StateContainer, navigationManager: NavigationManager,
+            localStorage: _localStorage, toastService: _toastService);
+    }
+
+    protected override async Task OnAfterRenderAsync(bool firstRender)
+    {
+        // remove ContainerState
+        StateContainer.Message = string.Empty;
+        await Task.CompletedTask;
+    }
 
     protected override async Task OnParametersSetAsync()
     {
@@ -89,12 +103,12 @@
     {
         try
         {
-            IsLoading = true;
+            LoadingStatus.IsLoading = true;
             var fullCode = TwoFactorModel.GetFullCode();
             var response = await ApiClient.PostAsync<ConfirmTwoFactorAuthenticationRequestDto, LoginResponseDto>(
-            uri: "api/v1/cet/auth/confirmtwofactor",
+            uri: APIEndpoint.CET_Auth_ConfirmTwoFactor,
             data: new ConfirmTwoFactorAuthenticationRequestDto() { Code = fullCode, Email = Email });
-            IsLoading = false;
+            LoadingStatus.IsLoading = false;
             if (response != null)
             {
                 var errorMessage = ToastHelper.ErrorMessage(response);
@@ -105,8 +119,9 @@
                 if (response.Success)
                 {
                     // save new tokens to localstorage
-
+                    await _localStorage.SetTokenAsync(item: response.Data.Adapt<UserSession>().ToJson());
                     // redirect user to currently page requested
+                    NavigationManager.NavigateTo(StateContainer.PreviousUrl ?? "/");
                 }
                 else
                 {
@@ -116,10 +131,14 @@
                     }
                 }
             }
+            else
+            {
+                _toastService.ShowError("An error occured while processing confirmation email.");
+            }
         }
         catch (Exception ex)
         {
-            IsLoading = false;
+            LoadingStatus.IsLoading = false;
             _toastService.ShowError(ex.Message);
         }
         await Task.CompletedTask;

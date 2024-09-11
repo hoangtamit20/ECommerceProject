@@ -199,26 +199,15 @@ namespace CET.Service
                 response.Result.Errors = errors;
                 return response;
             }
-            var currentUser = RuntimeContext.CurrentUser;
-            if (currentUser == null)
-            {
-                errors.Add(new ErrorDetail()
-                {
-                    Error = $"You don't have permission to request refresh token.",
-                    ErrorScope = CErrorScope.Global
-                });
-                response.StatusCode = StatusCodes.Status401Unauthorized;
-                response.Result.Success = false;
-                response.Result.Errors = errors;
-                return response;
-            }
             var userRefreshTokenExist = await _cetRepository.GetSet<UserRefreshTokenEntity>(usr =>
-                usr.UserId == currentUser.Id && usr.RefreshToken == refreshTokenDto.RefreshToken).FirstOrDefaultAsync();
+                    usr.RefreshToken == refreshTokenDto.RefreshToken
+                    && usr.AccessToken == refreshTokenDto.AccessToken)
+                .FirstOrDefaultAsync();
             if (userRefreshTokenExist == null)
             {
                 errors.Add(new ErrorDetail()
                 {
-                    Error = $"Refresh token '{refreshTokenDto.RefreshToken}' of user '{currentUser.Email}' not found.",
+                    Error = $"Refresh token is invalid or expired",
                     ErrorScope = CErrorScope.PageSumarry
                 });
                 response.StatusCode = StatusCodes.Status401Unauthorized;
@@ -234,6 +223,19 @@ namespace CET.Service
                     ErrorScope = CErrorScope.PageSumarry
                 });
                 response.StatusCode = StatusCodes.Status419AuthenticationTimeout;
+                response.Result.Success = false;
+                response.Result.Errors = errors;
+                return response;
+            }
+            var currentUser = await _userManager.FindByIdAsync(userId: userRefreshTokenExist.UserId);
+            if (currentUser == null)
+            {
+                errors.Add(new ErrorDetail()
+                {
+                    Error = $"You don't have permission to request refresh token.",
+                    ErrorScope = CErrorScope.Global
+                });
+                response.StatusCode = StatusCodes.Status401Unauthorized;
                 response.Result.Success = false;
                 response.Result.Errors = errors;
                 return response;
@@ -519,8 +521,8 @@ namespace CET.Service
                         return response;
                     }
                     var token = await _userManager.GeneratePasswordResetTokenAsync(user: userExist);
-                    var confirmationLink = LinkHelper.GenerateEmailConfirmationUrl(endpoint: RuntimeContext.Endpoint ?? string.Empty,
-                            relatedUrl: EmailEndpoint.RESET_PASSWORD_CONFIRM_ENDPOINT,
+                    var confirmationLink = LinkHelper.GenerateEmailConfirmationUrl(endpoint: RuntimeContext.AppSettings.ClientApp.ClientEndpoint ?? string.Empty,
+                            relatedUrl: ClientEndpoint.Confirm_Reset_Password,
                             userId: userExist.Id, token: token).ToString();
                     var appInfo = RuntimeContext.AppSettings.ClientApp;
                     var emailReplaceProperty = new ResetPasswordEmailTemplateModel()
