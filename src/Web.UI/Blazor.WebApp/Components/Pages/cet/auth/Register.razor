@@ -10,21 +10,21 @@
         <label>Full Name</label>
         <InputText id="fullName" @bind-Value="RegisterRequestDto.FullName" class="form-control" />
         <ValidationMessage For="@(() => RegisterRequestDto.FullName)" />
-        <FieldErrorComponent Errors="errors" FieldName="FullName_Error" />
+        <FieldErrorComponent Errors="Errors" FieldName="FullName_Error" />
     </div>
 
     <div class="mb-3">
         <label>Email</label>
         <InputText id="email" @bind-Value="RegisterRequestDto.Email" class="form-control" />
         <ValidationMessage For="@(() => RegisterRequestDto.Email)" />
-        <FieldErrorComponent Errors="errors" FieldName="Email_Error" />
+        <FieldErrorComponent Errors="Errors" FieldName="Email_Error" />
     </div>
 
     <div class="mb-3">
         <label>Password</label>
         <InputText id="password" @bind-Value="RegisterRequestDto.Password" class="form-control" type="password" />
         <ValidationMessage For="@(() => RegisterRequestDto.Password)" />
-        <FieldErrorComponent Errors="errors" FieldName="Password_Error" />
+        <FieldErrorComponent Errors="Errors" FieldName="Password_Error" />
     </div>
 
     <div class="mb-3">
@@ -32,7 +32,7 @@
         <InputText id="confirmPassword" @bind-Value="RegisterRequestDto.ConfirmPassword" class="form-control"
             type="password" />
         <ValidationMessage For="@(() => RegisterRequestDto.ConfirmPassword)" />
-        <FieldErrorComponent Errors="errors" FieldName="ConfirmPassword_Error" />
+        <FieldErrorComponent Errors="Errors" FieldName="ConfirmPassword_Error" />
     </div>
 
     <button type="submit" class="btn btn-outline-primary">Register</button>
@@ -51,7 +51,7 @@
 
 @code {
     private RegisterRequestDto RegisterRequestDto { get; set; } = new();
-    private List<ErrorDetail> errors = new();
+    private List<ErrorDetail> Errors = new();
     private ToastModel ToastModel = new();
     private bool isLoading = false;
 
@@ -61,7 +61,7 @@
         var response = await ApiClient.PostAsync<RegisterRequestDto, RegisterResponsetDto>(
             uri: "api/v1/cet/auth/register", data: RegisterRequestDto);
 
-        errors = response?.Errors ?? new();
+        Errors = response?.Errors ?? new();
 
         isLoading = false;
 

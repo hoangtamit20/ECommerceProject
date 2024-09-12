@@ -30,7 +30,7 @@
                                     <InputText @bind-Value="LoginModel.Email" class="form-control" name="email"
                                         id="email" placeholder="name@example.com" />
                                     <ValidationMessage For="@(() => LoginModel.Email)" />
-                                    <FieldErrorComponent Errors="errors" FieldName="Email_Error" />
+                                    <FieldErrorComponent Errors="Errors" FieldName="Email_Error" />
                                 </div>
                                 <div class="col-12">
                                     <label for="password" class="form-label">Password <span
@@ -38,7 +38,7 @@
                                     <InputText @bind-Value="LoginModel.Password" type="password" class="form-control"
                                         name="password" id="password" />
                                     <ValidationMessage For="@(() => LoginModel.Password)" />
-                                    <FieldErrorComponent Errors="errors" FieldName="Password_Error" />
+                                    <FieldErrorComponent Errors="Errors" FieldName="Password_Error" />
 
                                 </div>
                                 <div class="col-12">
@@ -115,7 +115,7 @@
 @code
 {
     private LoginRequestDto LoginModel { get; set; } = new LoginRequestDto();
-    private List<ErrorDetail> errors = new();
+    private List<ErrorDetail> Errors = new();
     private ToastModel ToastModel = new();
     private CLoadingStatus LoadingStatus { get; set; } = new();
 
@@ -144,7 +144,7 @@
             var response = await ApiClient.PostAsync<LoginRequestDto, LoginResponseDto>(
             uri: $"{APIEndpoint.CET_Auth_System_Login}", data: LoginModel, requestType: CRequestType.Public);
 
-            errors = response?.Errors ?? new();
+            Errors = response?.Errors ?? new();
 
             LoadingStatus.IsLoading = false;
 

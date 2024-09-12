@@ -1,38 +1,111 @@
 @page "/notification-summary"
+@layout AuthLayout
 @inject NavigationManager NavigationManager
-
-
-@* <div class="main-container">
-	<div class="check-container">
-		<div class="check-background">
-			<svg viewBox="0 0 65 51" fill="none" xmlns="http://www.w3.org/2000/svg">
-				<path d="M7 25L27.3077 44L58.5 7" stroke="white" stroke-width="13" stroke-linecap="round"
-					stroke-linejoin="round" />
-			</svg>
+@if (ResultMessageParameter != null && !string.IsNullOrEmpty(ResultMessageParameter.Message))
+{
+	<div class="container">
+		<div class="box">
+			<div class="row mb-4">
+				<h1 class="">Notification</h1>
+			</div>
+			<div class="row mb-4">
+				<div class="col-12 d-flex justify-content-center align-items-center">
+					<h1>Success icon : </h1>
+					<div id="lottie-animation" style="width: 100%; height: 70%;"></div>
+				</div>
+			</div>
+			<div class="row mb-4">
+				<h2 class="">@ResultMessageParameter.NotificationType.ToDescription()
+					@ResultMessageParameter.Level.ToDescription()</h2>
+				<p class="">@ResultMessageParameter.Message</p>
+			</div>
+			<div class="row d-flex justify-content-center">
+				<div class="col-auto">
+					<!-- Nút với biểu tượng và tiêu đề -->
+					<button class="btn btn-outline-secondary" @onclick="CloseTabAsync">
+						<i class="bi bi-arrow-return-left"></i> Back to Login
+					</button>
+				</div>
+			</div>
 		</div>
-		<div class="check-shadow"></div>
-		<p>@ResultMessageParameter.Message</p>
 	</div>
-</div> *@
+	<script src="animations/lotties/js/lottiebase.js"></script>
+}
+else
+{
+	_toastService.ShowError("You don't permission to access this page.");
 
+}
 
-<div id="lottie-animation"></div>
+@(LoadingStatus.IsLoading)
+{
+<Blazor.WebApp.Components.Spinners.LoadingApi />
+}
 
-<script
-	src="animations/lotties/js/lottie.min.js"></script>
-<script
-	src="animations/lotties/js/lottiebase.js"></script>
-
-
-@* <link rel="stylesheet" href="css/notification/notificationsummary.css"> *@
+<link rel="stylesheet" href="css/notification/notificationsummary.css">
 
 
 @code
 {
 	private ResultMessage ResultMessageParameter { get; set; } = new();
+	private string AnimationJsonFile { get; set; } = string.Empty;
+	private CLoadingStatus LoadingStatus { get; set; } = new();
 
-	protected override void OnInitialized()
+	protected override async Task OnInitializedAsync()
 	{
 		ResultMessageParameter = QueryStringHelper.GetQueryParameters<ResultMessage>(NavigationManager);
+		await Task.CompletedTask;
+	}
+
+	protected override async Task OnAfterRenderAsync(bool firstRender)
+	{
+		if (!string.IsNullOrEmpty(ResultMessageParameter.Message) && ResultMessageParameter.Level != CNotificationLevel.None
+		&& ResultMessageParameter.Level != CNotificationLevel.None)
+		{
+			var isFunctionAvailable = false;
+			while (isFunctionAvailable)
+			{
+				await Task.Delay(1);
+				isFunctionAvailable = await _jsRuntime.InvokeAsync<bool>("eval", "typeof loadLottieAnimation === 'function'");
+				Console.WriteLine(isFunctionAvailable);
+				LoadingStatus.IsLoading = false;
+			}
+			if (isFunctionAvailable)
+			{
+				if (!string.IsNullOrEmpty(ResultMessageParameter.Message) && ResultMessageParameter.Level != CNotificationLevel.None)
+				{
+					if (ResultMessageParameter.Level == CNotificationLevel.Success)
+					{
+						AnimationJsonFile = ResultMessageParameter.NotificationType == CNotificationType.Normal
+						? "success.json"
+						: "sendemailsuccess.json";
+					}
+					else
+					{
+						AnimationJsonFile = "success.json";
+					}
+
+					await _jsRuntime.InvokeVoidAsync("loadLottieAnimation", AnimationJsonFile);
+				}
+			}
+		}
+		else
+		{
+
+		}
+		await Task.CompletedTask;
+	}
+
+	private async Task CloseTabAsync()
+	{
+		try
+		{
+			NavigationManager.NavigateTo(uri: "/login");
+		}
+		catch (Exception ex)
+		{
+			_toastService.ShowError(ex.Message);
+		}
+		await Task.CompletedTask;
 	}
 }

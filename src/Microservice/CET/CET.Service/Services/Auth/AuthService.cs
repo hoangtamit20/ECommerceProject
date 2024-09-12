@@ -559,7 +559,8 @@ namespace CET.Service
                     response.Result.Success = true;
                     response.Result.Data = new ResultMessage()
                     {
-                        Success = true,
+                        Level = CNotificationLevel.Success,
+                        NotificationType = CNotificationType.Email,
                         Message = $"A password reset link has been sent to your email address. Please check your inbox and follow the instructions to reset your password."
                     };
                     await dbTransaction.CommitAsync();
@@ -686,7 +687,8 @@ namespace CET.Service
             response.Result.Success = true;
             response.Result.Data = new ResultMessage()
             {
-                Success = true,
+                Level = CNotificationLevel.Success,
+                NotificationType = CNotificationType.Normal,
                 Message = "Reset password reset successfully"
             };
             response.StatusCode = StatusCodes.Status200OK;
@@ -715,7 +717,12 @@ namespace CET.Service
             {
                 response.StatusCode = StatusCodes.Status200OK;
                 response.Result.Success = true;
-                response.Result.Data = new ResultMessage() { Message = "Logout successfully", Success = true };
+                response.Result.Data = new ResultMessage()
+                {
+                    Message = "Logout successfully",
+                    Level = CNotificationLevel.Info,
+                    NotificationType = CNotificationType.Normal
+                };
                 return response;
             }
             var revokedUserRefreshTokens = areAllDevices ? await _cetRepository.GetSet<UserRefreshTokenEntity>(urt => urt.UserId == currentUserId
@@ -734,7 +741,12 @@ namespace CET.Service
                     await _cetRepository.UpdateRangeAsync(entities: revokedUserRefreshTokens);
                     await dbTransaction.CommitAsync();
                     response.Result.Success = true;
-                    response.Result.Data = new ResultMessage() { Message = "Logout success fully", Success = true };
+                    response.Result.Data = new ResultMessage()
+                    {
+                        Message = "Logout successfully",
+                        Level = CNotificationLevel.Info,
+                        NotificationType = CNotificationType.Normal
+                    };
                     response.StatusCode = StatusCodes.Status200OK;
                     return response;
                 }

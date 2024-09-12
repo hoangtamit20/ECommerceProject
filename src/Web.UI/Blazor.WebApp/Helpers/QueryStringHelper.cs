@@ -1,4 +1,5 @@
 using System.Reflection;
+using System.Text;
 using System.Web;
 using Microsoft.AspNetCore.Components;
 using Microsoft.AspNetCore.WebUtilities;
@@ -34,16 +35,53 @@ namespace Blazor.WebApp
                 {
                     try
                     {
-                        var convertedValue = Convert.ChangeType(queryParamValue, property.PropertyType);
-                        property.SetValue(result, convertedValue);
+                        if (property.PropertyType.IsEnum)
+                        {
+                            // Special handling for enum types
+                            var enumType = property.PropertyType;
+                            var enumValue = Enum.Parse(enumType, queryParamValue, ignoreCase: true);
+                            property.SetValue(result, enumValue);
+                        }
+                        else
+                        {
+                            // Handle other types
+                            var convertedValue = Convert.ChangeType(queryParamValue, property.PropertyType);
+                            property.SetValue(result, convertedValue);
+                        }
                     }
-                    catch(Exception ex)
+                    catch (Exception ex)
                     {
-                        throw new Exception(ex.Message);
+                        throw new Exception($"Failed to convert query parameter '{property.Name}' with value '{queryParamValue}' to type '{property.PropertyType}'.", ex);
                     }
                 }
             }
             return result;
+        }
+
+        public static string ToQueryString<T>(T obj) where T : class
+        {
+            if (obj == null)
+                throw new ArgumentNullException(nameof(obj));
+
+            var queryString = new StringBuilder();
+
+            var properties = typeof(T).GetProperties(BindingFlags.Public | BindingFlags.Instance);
+            foreach (var property in properties)
+            {
+                var value = property.GetValue(obj);
+                if (value != null)
+                {
+                    var encodedKey = Uri.EscapeDataString(property.Name);
+                    var encodedValue = Uri.EscapeDataString(value.ToString() ?? string.Empty);
+                    if (queryString.Length > 0)
+                    {
+                        queryString.Append("&");
+                    }
+                    queryString.Append($"{encodedKey}={encodedValue}");
+                }
+            }
+
+            return queryString.ToString();
         }
     }
 }

@@ -14,3 +14,9 @@ function hideElementsAfterDelay(id, delay) {
         }
     }, delay);
 }
+
+function closeTab() {
+    console.log("Da call");
+    
+    window.close();
+}
