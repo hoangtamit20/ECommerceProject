@@ -2,28 +2,37 @@
 @inject NavigationManager NavigationManager
 
 
-<div class="main-container">
+@* <div class="main-container">
 	<div class="check-container">
 		<div class="check-background">
 			<svg viewBox="0 0 65 51" fill="none" xmlns="http://www.w3.org/2000/svg">
-				<path d="M7 25L27.3077 44L58.5 7" stroke="white" stroke-width="13" stroke-linecap="round" stroke-linejoin="round" />
+				<path d="M7 25L27.3077 44L58.5 7" stroke="white" stroke-width="13" stroke-linecap="round"
+					stroke-linejoin="round" />
 			</svg>
 		</div>
 		<div class="check-shadow"></div>
-        <p>@ResultMessageParameter.Message</p>
+		<p>@ResultMessageParameter.Message</p>
 	</div>
-</div>
+</div> *@
 
 
-<link rel="stylesheet" href="css/notification/notificationsummary.css">
+<div id="lottie-animation"></div>
+
+<script
+	src="animations/lotties/js/lottie.min.js"></script>
+<script
+	src="animations/lotties/js/lottiebase.js"></script>
+
+
+@* <link rel="stylesheet" href="css/notification/notificationsummary.css"> *@
 
 
 @code
 {
-    private ResultMessage ResultMessageParameter { get; set; } = new();
+	private ResultMessage ResultMessageParameter { get; set; } = new();
 
-    protected override void OnInitialized()
-    {
-        ResultMessageParameter = QueryStringHelper.GetQueryParameters<ResultMessage>(NavigationManager);
-    }
+	protected override void OnInitialized()
+	{
+		ResultMessageParameter = QueryStringHelper.GetQueryParameters<ResultMessage>(NavigationManager);
+	}
 }
