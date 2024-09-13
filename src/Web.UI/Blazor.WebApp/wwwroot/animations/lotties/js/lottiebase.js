@@ -1,5 +1,6 @@
 // lottiebase.js
 window.loadLottieAnimation = function (path) {
+    console.log(`animations/lotties/jsons/${path}`);
     var animation = bodymovin.loadAnimation({
         container: document.getElementById('lottie-animation'),
         path: `animations/lotties/jsons/${path}`,

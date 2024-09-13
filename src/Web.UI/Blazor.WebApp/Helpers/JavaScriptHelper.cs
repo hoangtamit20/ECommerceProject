@@ -17,11 +17,25 @@ namespace Blazor.WebApp
                 && message.NotificationType != CNotificationType.None)
             {
                 string templateJsonFile = string.Empty;
-                // handle for success
                 templateJsonFile = $"{message.NotificationType.ToString()}_Notification_Template_{message.Level}.json";
                 await jsRuntime.InvokeVoidAsync(identifier: "loadLottieAnimation", args: templateJsonFile);
                 await Task.CompletedTask;
             }
+        }
+
+        public static async Task AnimationIconPopupAsync(IJSRuntime jsRuntime, CNotificationLevel level = CNotificationLevel.Info)
+        {
+            string templateJsonFile = string.Empty;
+            templateJsonFile = $"Pop_Up_{level.ToString()}.json";
+            await jsRuntime.InvokeVoidAsync(identifier: "loadLottieAnimation", args: templateJsonFile);
+            await Task.CompletedTask;
+        }
+
+
+        public static async Task<string> GetCurrentUrlAsync(IJSRuntime jsRuntime)
+        {
+            var currentUrl = await jsRuntime.InvokeAsync<string>(identifier: "getCurrentUrl");
+            return currentUrl;
         }
     }
 }

@@ -6,14 +6,56 @@
 
 <h1>Hello, world!</h1>
 
+
 Welcome to your new app.
 <h1>@StateContainer.PreviousUrl</h1>
+
+
+
+<button class="btn btn-primary" @onclick="ShowPopupAsync">Show Popup</button>
+
+@if (showPopup)
+{
+    <Blazor.WebApp.Components.Popups.Popup 
+    Title="Success!" 
+    Message="Your operation was successful." 
+    Duration="50000" 
+    Position=CToastPosition.Center 
+    Status=CNotificationLevel.Info
+    OnClose="HandlePopupClose" />
+}
+
+<button class="btn btn-primary" @onclick="ShowConfirmDialog">Open Confirm Dialog</button>
+
+@if (showConfirmDialog)
+{
+    <Blazor.WebApp.Components.Popups.ConfirmDialog 
+        Title="Confirm Action" 
+        Message="Are you sure you want to proceed?" 
+        IconName="bi-exclamation-triangle" 
+        Position=CToastPosition.Center 
+        Status=CNotificationLevel.Info
+        OnConfirmation="HandleConfirmation" />
+}
 
 @code
 {
     protected override async Task OnInitializedAsync()
     {
         await Task.CompletedTask;
+    }
+
+    private bool showPopup = false;
+
+    private async Task ShowPopupAsync()
+    {
+        showPopup = true;
+        await Task.CompletedTask;
+    }
+
+    private void HandlePopupClose()
+    {
+        showPopup = false;
     }
 
     protected override async Task OnAfterRenderAsync(bool firstRender)
@@ -23,6 +65,30 @@ Welcome to your new app.
         {
             _toastService.ShowInfo(message: message);
             StateContainer.Message = string.Empty;
+        }
+        await Task.CompletedTask;
+    }
+
+
+    private bool showConfirmDialog = false;
+
+    private void ShowConfirmDialog()
+    {
+        showConfirmDialog = true;
+    }
+
+    private async Task HandleConfirmation(bool isConfirmed)
+    {
+        showConfirmDialog = false;
+        if (isConfirmed)
+        {
+            // User confirmed action
+            Console.WriteLine("User confirmed.");
+        }
+        else
+        {
+            // User canceled action
+            Console.WriteLine("User canceled.");
         }
         await Task.CompletedTask;
     }

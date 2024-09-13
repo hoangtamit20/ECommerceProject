@@ -1,0 +1,85 @@
+@if (isVisible)
+{
+    <div class="popup-overlay container-fluid">
+        <div class="popup-container d-flex flex-column alert @GetAlertClass() @GetPositionClass() bg-@Status.ToString().ToLower()-subtle text-@Status.ToString().ToLower()-emphasis" style="min-width: 400px; max-width: 500px; min-height: 250px; max-height: 800px;">
+            <button type="button" class="btn-close btn btn-sm btn-outline-danger" aria-label="Close" @onclick="CloseAsync">
+                <i class="bi bi-x-lg"></i>
+            </button>
+            <div class="popup-header d-flex justify-content-start mx-2">
+                <div id="lottie-animation" class="d-flex" style="max-width: 80px; max-height: 80px;"></div>
+                <h2 class="pt-2">@Title</h2>
+            </div>
+            <div class="popup-body text-secondary">
+                <p>@Message</p>
+            </div>
+        </div>
+    </div>
+}
+
+<link rel="stylesheet" href="css/popups/popup.css">
+
+@code {
+    [Parameter] public string Title { get; set; } = string.Empty;
+    [Parameter] public string Message { get; set; } = string.Empty;
+    [Parameter] public int Duration { get; set; } = 0;
+    [Parameter] public CToastPosition Position { get; set; } = CToastPosition.Center;
+    [Parameter] public CNotificationLevel Status { get; set; } = CNotificationLevel.Info;
+    [Parameter] public EventCallback OnClose { get; set; }
+
+    private bool isVisible = true;
+
+    protected override async Task OnParametersSetAsync()
+    {
+        if (Duration > 0)
+        {
+            await CloseAfterDurationAsync(Duration);
+        }
+    }
+
+    private async Task CloseAfterDurationAsync(int milliseconds)
+    {
+        await Task.Delay(milliseconds);
+        if (isVisible)
+        {
+            isVisible = false;
+            await OnClose.InvokeAsync();
+        }
+    }
+
+    private async Task CloseAsync()
+    {
+        isVisible = false;
+        await OnClose.InvokeAsync();
+    }
+
+    private string GetAlertClass()
+    {
+        return Status switch
+        {
+            CNotificationLevel.Info => "alert-info",
+            CNotificationLevel.Error => "alert-danger",
+            CNotificationLevel.Success => "alert-success",
+            CNotificationLevel.Warning => "alert-warning",
+            _ => "alert-secondary"
+        };
+    }
+
+    private string GetPositionClass()
+    {
+        return Position switch
+        {
+            CToastPosition.Center => "position-center",
+            CToastPosition.TopLeft => "position-top-left",
+            CToastPosition.TopRight => "position-top-right",
+            CToastPosition.BottomLeft => "position-bottom-left",
+            CToastPosition.BottomRight => "position-bottom-right",
+            _ => "position-center"
+        };
+    }
+
+    protected override async Task OnAfterRenderAsync(bool firstRender)
+    {
+        await JavaScriptHelper.AnimationIconPopupAsync(_jsRuntime, Status);
+        await Task.CompletedTask;
+    }
+}

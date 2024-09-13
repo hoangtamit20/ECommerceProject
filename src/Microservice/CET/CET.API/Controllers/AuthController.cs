@@ -11,13 +11,11 @@ namespace CET.API.Controllers
     {
         private readonly IAuthService _authService;
         private readonly ILogger<AuthController> _logger;
-        private readonly IUserService _userService;
 
-        public AuthController(IAuthService authService, ILogger<AuthController> logger, IUserService userService)
+        public AuthController(IAuthService authService, ILogger<AuthController> logger)
         {
             _authService = authService;
             _logger = logger;
-            _userService = userService;
         }
 
         [HttpGet("authentication")]

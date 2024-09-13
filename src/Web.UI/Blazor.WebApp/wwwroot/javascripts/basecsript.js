@@ -15,8 +15,11 @@ function hideElementsAfterDelay(id, delay) {
     }, delay);
 }
 
-function closeTab() {
-    console.log("Da call");
-    
+function getCurrentUrl()
+{
+    return window.location.href;
+}
+
+function closeTab() {    
     window.close();
 }

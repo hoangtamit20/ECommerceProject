@@ -1,0 +1,99 @@
+@if (isVisible)
+{
+    <div class="popup-overlay">
+        <div class="popup-container alert @GetAlertClass() @GetPositionClass()">
+            <button type="button" class="btn-close" aria-label="Close" @onclick="CloseAsync">
+                <i class="bi bi-x-lg"></i>
+            </button>
+            <div class="popup-header">
+                @if (!string.IsNullOrEmpty(IconName))
+                {
+                    <i class="bi @IconName"></i>
+                }
+                <h4>@Title</h4>
+            </div>
+            <div class="popup-body">
+                <p>@Message</p>
+            </div>
+            <div class="popup-footer">
+                <button class="btn btn-primary" @onclick="ConfirmAsync">Yes</button>
+                <button class="btn btn-secondary" @onclick="CancelAsync">No</button>
+            </div>
+        </div>
+    </div>
+}
+
+<link rel="stylesheet" href="css/popups/confirmdialog.css">
+
+@code {
+    [Parameter] public string Title { get; set; } = string.Empty;
+    [Parameter] public string Message { get; set; } = string.Empty;
+    [Parameter] public string IconName { get; set; } = string.Empty;
+    [Parameter] public int Duration { get; set; } = 0;
+    [Parameter] public CToastPosition Position { get; set; } = CToastPosition.Center;
+    [Parameter] public CNotificationLevel Status { get; set; } = CNotificationLevel.Info;
+    [Parameter] public EventCallback<bool> OnConfirmation { get; set; }
+
+    private bool isVisible = true;
+
+    protected override async Task OnParametersSetAsync()
+    {
+        if (Duration > 0)
+        {
+            await CloseAfterDurationAsync(Duration);
+        }
+    }
+
+    private async Task CloseAfterDurationAsync(int milliseconds)
+    {
+        await Task.Delay(milliseconds);
+        if (isVisible)
+        {
+            isVisible = false;
+            await OnConfirmation.InvokeAsync(false);
+        }
+    }
+
+    private async Task CloseAsync()
+    {
+        isVisible = false;
+        await OnConfirmation.InvokeAsync(false); // No
+    }
+
+    private async Task ConfirmAsync()
+    {
+        isVisible = false;
+        await OnConfirmation.InvokeAsync(true); // Yes
+    }
+
+    private async Task CancelAsync()
+    {
+        isVisible = false;
+        await OnConfirmation.InvokeAsync(false); // No
+    }
+
+    private string GetAlertClass()
+    {
+        return Status switch
+        {
+            CNotificationLevel.Info => "alert-info",
+            CNotificationLevel.Error => "alert-danger",
+            CNotificationLevel.Success => "alert-success",
+            CNotificationLevel.Warning => "alert-warning",
+            _ => "alert-secondary"
+        };
+    }
+
+    private string GetPositionClass()
+    {
+        return Position switch
+        {
+            CToastPosition.Center => "position-center",
+            CToastPosition.TopLeft => "position-top-left",
+            CToastPosition.TopRight => "position-top-right",
+            CToastPosition.BottomLeft => "position-bottom-left",
+            CToastPosition.BottomRight => "position-bottom-right",
+            _ => "position-center"
+        };
+    }
+}

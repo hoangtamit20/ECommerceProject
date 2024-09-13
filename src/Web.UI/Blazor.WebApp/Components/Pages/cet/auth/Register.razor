@@ -2,6 +2,7 @@
 @using Blazor.WebApp.Components.Errors
 @layout AuthLayout
 @inject NavigationManager NavigationManager
+@inject StateContainer StateContainer
 
 <PageTitle>Register</PageTitle>
 
@@ -116,6 +117,13 @@
     private RegisterRequestDto RegisterRequestDto { get; set; } = new();
     private List<ErrorDetail> Errors = new();
     private CLoadingStatus LoadingStatus { get; set; } = new();
+
+    protected override async Task OnInitializedAsync()
+    {
+        await AuthenticationHelper.AuthenticationAsync(loadingStatus: LoadingStatus, apiClient: ApiClient,
+            stateContainer: StateContainer, navigationManager: NavigationManager,
+            localStorage: _localStorage, toastService: _toastService);
+    }
 
     private async Task RegisterUserAsync()
     {
