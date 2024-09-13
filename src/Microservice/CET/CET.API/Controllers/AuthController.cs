@@ -62,8 +62,11 @@ namespace CET.API.Controllers
         [HttpGet("emailconfirm")]
         public async Task<IActionResult> ConfirmEmailRegistration([FromQuery] ConfirmEmailDto confirmEmailDto)
         {
-            var result = await _userService.ConfirmedEmailAsync(confirmEmailDto: confirmEmailDto, modelState: ModelState);
-            return StatusCode(statusCode: result.StatusCode, value: result.Result);
+            var clientEndpoint = RuntimeContext.AppSettings.ClientApp.ClientEndpoint;
+            var resultMessage = await _authService.ConfirmRegisterAsync(confirmEmailDto: confirmEmailDto, modelState: ModelState);
+            var queryString = LinkHelper.ToQueryString<ResultMessage>(obj: resultMessage);
+            var url = $"{clientEndpoint.TrimEnd('/')}/notification-summary/?{queryString}";
+            return Redirect(url: url);
         }
 
 

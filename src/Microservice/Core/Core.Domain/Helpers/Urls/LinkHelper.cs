@@ -1,3 +1,5 @@
+using System.Reflection;
+using System.Text;
 using System.Web;
 
 namespace Core.Domain
@@ -46,6 +48,33 @@ namespace Core.Domain
                 System.Console.WriteLine(ex.Message);
                 return null;
             }
+        }
+
+
+        public static string ToQueryString<T>(T obj) where T : class
+        {
+            if (obj == null)
+                throw new ArgumentNullException(nameof(obj));
+
+            var queryString = new StringBuilder();
+
+            var properties = typeof(T).GetProperties(BindingFlags.Public | BindingFlags.Instance);
+            foreach (var property in properties)
+            {
+                var value = property.GetValue(obj);
+                if (value != null)
+                {
+                    var encodedKey = Uri.EscapeDataString(property.Name);
+                    var encodedValue = Uri.EscapeDataString(value.ToString() ?? string.Empty);
+                    if (queryString.Length > 0)
+                    {
+                        queryString.Append("&");
+                    }
+                    queryString.Append($"{encodedKey}={encodedValue}");
+                }
+            }
+
+            return queryString.ToString();
         }
 
     }

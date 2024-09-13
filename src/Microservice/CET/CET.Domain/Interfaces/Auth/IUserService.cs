@@ -9,6 +9,6 @@ namespace CET.Domain
         Task<ApiResponse<CreateUserResponseDto>> CreateUserAsync(CreateUserRequestDto requestDto,
             bool isAdminRequest = false,
             ModelStateDictionary? modelState = null);
-        Task<ApiResponse<string>> ConfirmedEmailAsync(ConfirmEmailDto confirmEmailDto, ModelStateDictionary? modelState = null);
+        Task<ResultMessage> ConfirmedEmailAsync(ConfirmEmailDto confirmEmailDto, ModelStateDictionary? modelState = null);
     }
 }

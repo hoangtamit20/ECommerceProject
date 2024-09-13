@@ -157,21 +157,25 @@ namespace CET.Service
         }
 
 
-        public async Task<ApiResponse<string>> ConfirmedEmailAsync(ConfirmEmailDto confirmEmailDto, ModelStateDictionary? modelState = null)
+        public async Task<ResultMessage> ConfirmedEmailAsync(ConfirmEmailDto confirmEmailDto, ModelStateDictionary? modelState = null)
         {
-            var response = new ApiResponse<string>();
+            var response = new ResultMessage();
+            response.NotificationType = CNotificationType.Register;
 
             var errors = ErrorHelper.GetModelStateError(modelState: modelState);
             if (errors.Any())
             {
-                return GenerateErrorResponse(response, StatusCodes.Status400BadRequest, errors);
+                response.Level = CNotificationLevel.Error;
+                response.Message = errors.Select(e => e.Error).ToList().ToMultilineString();
+                return response;
             }
 
             var userExist = await _userManager.FindByIdAsync(confirmEmailDto.UserId);
             if (userExist == null)
             {
-                var userNotFoundError = new ErrorDetail { Field = "UserId", Error = "User doesn't exist", ErrorScope = CErrorScope.PageSumarry };
-                return GenerateErrorResponse(response, StatusCodes.Status404NotFound, new List<ErrorDetail> { userNotFoundError });
+                response.Level = CNotificationLevel.Error;
+                response.Message = $"Cannot found anny user for this request.";
+                return response;
             }
 
             var userTokenEntity = await _cetRepository.GetSet<UserTokenCustomEntity>(utc =>
@@ -181,25 +185,24 @@ namespace CET.Service
             {
                 if (userTokenEntity.IsTokenInvoked)
                 {
-                    return GenerateErrorResponse(response, StatusCodes.Status422UnprocessableEntity,
-                        new List<ErrorDetail> { new ErrorDetail { Error = "Token has been invoked", ErrorScope = CErrorScope.PageSumarry } });
+                    response.Level = CNotificationLevel.Error;
+                    response.Message = $"The token has already been used. Please request a new one.";
+                    return response;
                 }
                 if (userTokenEntity.TokenExpiration < DateTimeOffset.UtcNow)
                 {
-                    return GenerateErrorResponse(response, StatusCodes.Status422UnprocessableEntity,
-                        new List<ErrorDetail> { new ErrorDetail { Error = "Token has expired", ErrorScope = CErrorScope.PageSumarry } });
+                    response.Level = CNotificationLevel.Error;
+                    response.Message = $"The token has expired. Please request a new one."; 
+                    return response;
                 }
             }
 
             var result = await _userManager.ConfirmEmailAsync(userExist, confirmEmailDto.Token);
             if (!result.Succeeded)
             {
-                var errorsList = result.Errors.Select(err => new ErrorDetail
-                {
-                    ErrorScope = CErrorScope.PageSumarry,
-                    Error = err.Description
-                }).ToList();
-                return GenerateErrorResponse(response, StatusCodes.Status422UnprocessableEntity, errorsList);
+                response.Message = result.Errors.Select(err =>  err.Description).ToList().ToMultilineString();
+                response.Level = CNotificationLevel.Error;
+                return response;
             }
 
             if (userTokenEntity == null)
@@ -221,12 +224,12 @@ namespace CET.Service
                 await _cetRepository.UpdateAsync(userTokenEntity);
             }
 
-            response.Result.Success = true;
-            response.Result.Data = "Your email has been confirmed successfully.";
+            response.Level = CNotificationLevel.Success;
+            response.Message = "Your email has been successfully confirmed, and your account registration is complete. Congratulations!";
             return response;
         }
 
-        private ApiResponse<string> GenerateErrorResponse(ApiResponse<string> response, int statusCode, List<ErrorDetail> errors)
+        private ApiResponse<ResultMessage> GenerateErrorResponse(ApiResponse<ResultMessage> response, int statusCode, List<ErrorDetail> errors)
         {
             response.Result.Success = false;
             response.StatusCode = statusCode;

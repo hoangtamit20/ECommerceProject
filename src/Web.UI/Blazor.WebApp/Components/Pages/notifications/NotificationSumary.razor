@@ -1,6 +1,9 @@
 @page "/notification-summary"
 @layout AuthLayout
 @inject NavigationManager NavigationManager
+
+<PageTitle>Notification</PageTitle>
+
 @if (ResultMessageParameter != null && !string.IsNullOrEmpty(ResultMessageParameter.Message))
 {
 	<div class="container">
@@ -10,7 +13,6 @@
 			</div>
 			<div class="row mb-4">
 				<div class="col-12 d-flex justify-content-center align-items-center">
-					<h1>Success icon : </h1>
 					<div id="lottie-animation" style="width: 100%; height: 70%;"></div>
 				</div>
 			</div>
@@ -29,17 +31,10 @@
 			</div>
 		</div>
 	</div>
-	<script src="animations/lotties/js/lottiebase.js"></script>
 }
 else
 {
 	_toastService.ShowError("You don't permission to access this page.");
-
-}
-
-@(LoadingStatus.IsLoading)
-{
-<Blazor.WebApp.Components.Spinners.LoadingApi />
 }
 
 <link rel="stylesheet" href="css/notification/notificationsummary.css">
@@ -48,7 +43,6 @@ else
 @code
 {
 	private ResultMessage ResultMessageParameter { get; set; } = new();
-	private string AnimationJsonFile { get; set; } = string.Empty;
 	private CLoadingStatus LoadingStatus { get; set; } = new();
 
 	protected override async Task OnInitializedAsync()
@@ -59,40 +53,18 @@ else
 
 	protected override async Task OnAfterRenderAsync(bool firstRender)
 	{
-		if (!string.IsNullOrEmpty(ResultMessageParameter.Message) && ResultMessageParameter.Level != CNotificationLevel.None
-		&& ResultMessageParameter.Level != CNotificationLevel.None)
+		@* if (firstRender)
 		{
-			var isFunctionAvailable = false;
-			while (isFunctionAvailable)
-			{
-				await Task.Delay(1);
-				isFunctionAvailable = await _jsRuntime.InvokeAsync<bool>("eval", "typeof loadLottieAnimation === 'function'");
-				Console.WriteLine(isFunctionAvailable);
-				LoadingStatus.IsLoading = false;
-			}
-			if (isFunctionAvailable)
-			{
-				if (!string.IsNullOrEmpty(ResultMessageParameter.Message) && ResultMessageParameter.Level != CNotificationLevel.None)
-				{
-					if (ResultMessageParameter.Level == CNotificationLevel.Success)
-					{
-						AnimationJsonFile = ResultMessageParameter.NotificationType == CNotificationType.Normal
-						? "success.json"
-						: "sendemailsuccess.json";
-					}
-					else
-					{
-						AnimationJsonFile = "success.json";
-					}
+			// Dynamically load the lottiebase.js script
+			await _jsRuntime.InvokeVoidAsync("eval", "var script = document.createElement('script'); script.src = 'animations/lotties/js/lottiebase.js'; document.head.appendChild(script);");
 
-					await _jsRuntime.InvokeVoidAsync("loadLottieAnimation", AnimationJsonFile);
-				}
-			}
-		}
-		else
-		{
+			// Give the script some time to load (adjust timing as needed)
+			await Task.Delay(500);
 
-		}
+			// Call the animation function after the script is loaded
+			await JavaScriptHelper.AnimationIconResultPageAsync(message: ResultMessageParameter, jsRuntime: _jsRuntime);
+		} *@
+		await JavaScriptHelper.AnimationIconResultPageAsync(message: ResultMessageParameter, jsRuntime: _jsRuntime);
 		await Task.CompletedTask;
 	}
 

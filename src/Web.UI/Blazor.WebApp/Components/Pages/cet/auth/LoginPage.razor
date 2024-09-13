@@ -4,12 +4,14 @@
 @inject NavigationManager NavigationManager
 @inject StateContainer StateContainer
 
+<PageTitle>Login</PageTitle>
+
 <section class="p-3 p-md-4 p-xl-5">
     <div class="container">
-        <div class="card border-light-subtle shadow-sm">
+        <div class="card border-light-subtle shadow-sm" style="border-radius: 25px; background-color: rgba(255, 255, 255, 0.49);">
             <div class="row g-0">
                 <div class="col-12 col-md-6">
-                    <img class="img-fluid rounded-start w-100 h-100 object-fit-cover" src="images/Company.gif"
+                    <img class="img-fluid rounded-start w-100 h-100 object-fit-cover" src="images/auth/Login.png"
                         alt="BootstrapBrain Logo">
                 </div>
                 <div class="col-12 col-md-6">
@@ -35,7 +37,7 @@
                                 <div class="col-12">
                                     <label for="password" class="form-label">Password <span
                                             class="text-danger">*</span></label>
-                                    <InputText @bind-Value="LoginModel.Password" type="password" class="form-control"
+                                    <InputText @bind-Value="LoginModel.Password" placeholder="Enter your password" type="password" class="form-control"
                                         name="password" id="password" />
                                     <ValidationMessage For="@(() => LoginModel.Password)" />
                                     <FieldErrorComponent Errors="Errors" FieldName="Password_Error" />
@@ -61,8 +63,8 @@
                             <div class="col-12">
                                 <hr class="mt-5 mb-4 border-secondary-subtle">
                                 <div class="d-flex gap-2 gap-md-4 flex-column flex-md-row justify-content-md-end">
-                                    <a href="#!" class="link-secondary text-decoration-none">Create new account</a>
-                                    <a href="#!" class="link-secondary text-decoration-none">Forgot password</a>
+                                    <a href="/register" class="link-secondary text-decoration-none">Create new account</a>
+                                    <a href="/reset-password" class="link-secondary text-decoration-none">Forgot password</a>
                                 </div>
                             </div>
                         </div>
@@ -109,7 +111,7 @@
     <Blazor.WebApp.Components.Spinners.LoadingApi />
 }
 
-<link rel="stylesheet" href="auth\login.css">
+<link rel="stylesheet" href="auth/login.css">
 
 
 @code

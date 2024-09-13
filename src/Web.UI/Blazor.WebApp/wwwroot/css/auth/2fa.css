@@ -157,7 +157,7 @@ body {
     width: 100%;
     padding: 65px 90px 45px;
     border-radius: 10px;
-    background: rgba(199, 190, 243);
+    background: rgba(101, 72, 243, 0.71);
     box-shadow: 10px 10px 80px rgba(0, 0, 1, 1);
     /* important property */
     backdrop-filter: blur(15px);

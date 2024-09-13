@@ -18,6 +18,15 @@
     --bs-btn-border-radius: var(--bs-border-radius-lg)
 }
 
+
+.box-card-body
+{
+    background-color: #ffffff80 !important;
+    /* important property */
+    backdrop-filter: blur(12px);
+}
+
+
 @media(min-width:1200px) {
     .bsb-btn-2xl {
         --bs-btn-font-size: 1.45rem

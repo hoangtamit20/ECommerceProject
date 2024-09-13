@@ -364,11 +364,11 @@ namespace CET.Service
         #endregion confirm two factor authentication
 
         #region register
-        public async Task<ApiResponse<RegisterResponsetDto>> RegisterAsync(RegisterRequestDto registerDto,
+        public async Task<ApiResponse<ResultMessage>> RegisterAsync(RegisterRequestDto registerDto,
             ModelStateDictionary? modelState = null)
         {
             var errors = ErrorHelper.GetModelStateError(modelState: modelState);
-            var response = new ApiResponse<RegisterResponsetDto>();
+            var response = new ApiResponse<ResultMessage>();
             if (!errors.IsNullOrEmpty())
             {
                 response.StatusCode = StatusCodes.Status400BadRequest;
@@ -444,10 +444,11 @@ namespace CET.Service
                     await dbTransaction.CommitAsync();
                     response.StatusCode = StatusCodes.Status202Accepted;
                     response.Result.Success = true;
-                    response.Result.Data = new RegisterResponsetDto()
+                    response.Result.Data = new ResultMessage()
                     {
-                        Email = userExist.Email ?? string.Empty,
-                        Message = "Your account registration is complete! Please check your email to confirm your registration."
+                        Level = CNotificationLevel.Info,
+                        Message = $"Your account registration is complete! Please check your email '{userExist.Email}' to confirm your registration.",
+                        NotificationType = CNotificationType.Email
                     };
                     return response;
                 }
@@ -466,6 +467,79 @@ namespace CET.Service
                     return response;
                 }
             }
+        }
+
+
+        public async Task<ResultMessage> ConfirmRegisterAsync(ConfirmEmailDto confirmEmailDto, ModelStateDictionary? modelState)
+        {
+            var response = new ResultMessage();
+            response.NotificationType = CNotificationType.Register;
+
+            var errors = ErrorHelper.GetModelStateError(modelState: modelState);
+            if (errors.Any())
+            {
+                response.Level = CNotificationLevel.Error;
+                response.Message = errors.Select(e => e.Error).ToList().ToMultilineString();
+                return response;
+            }
+
+            var userExist = await _userManager.FindByIdAsync(confirmEmailDto.UserId);
+            if (userExist == null)
+            {
+                response.Level = CNotificationLevel.Error;
+                response.Message = $"Cannot found anny user for this request.";
+                return response;
+            }
+
+            var userTokenEntity = await _cetRepository.GetSet<UserTokenCustomEntity>(utc =>
+                utc.UserId == userExist.Id && utc.Token == confirmEmailDto.Token).FirstOrDefaultAsync();
+
+            if (userTokenEntity != null)
+            {
+                if (userTokenEntity.IsTokenInvoked)
+                {
+                    response.Level = CNotificationLevel.Error;
+                    response.Message = $"The token has already been used. Please request a new one.";
+                    return response;
+                }
+                if (userTokenEntity.TokenExpiration < DateTimeOffset.UtcNow)
+                {
+                    response.Level = CNotificationLevel.Error;
+                    response.Message = $"The token has expired. Please request a new one.";
+                    return response;
+                }
+            }
+
+            var result = await _userManager.ConfirmEmailAsync(userExist, confirmEmailDto.Token);
+            if (!result.Succeeded)
+            {
+                response.Message = result.Errors.Select(err => err.Description).ToList().ToMultilineString();
+                response.Level = CNotificationLevel.Error;
+                return response;
+            }
+
+            if (userTokenEntity == null)
+            {
+                userTokenEntity = new UserTokenCustomEntity
+                {
+                    IsTokenInvoked = true,
+                    Name = CTokenType.EmailConfirmation.ToDescription(),
+                    Token = confirmEmailDto.Token,
+                    TokenExpiration = DateTimeOffset.UtcNow.AddMinutes(-1),
+                    Type = CTokenType.EmailConfirmation,
+                    UserId = userExist.Id
+                };
+                await _cetRepository.AddAsync(userTokenEntity);
+            }
+            else
+            {
+                userTokenEntity.IsTokenInvoked = true;
+                await _cetRepository.UpdateAsync(userTokenEntity);
+            }
+
+            response.Level = CNotificationLevel.Success;
+            response.Message = "Your email has been successfully confirmed, and your account registration is complete. Congratulations!";
+            return response;
         }
         #endregion register
 
@@ -786,7 +860,7 @@ namespace CET.Service
                 "Confirm your email to complete your registration",
                 string.Empty, "ConfirmEmailTemplate.html",
                 emailReplaceProperty,
-                CEmailProviderType.Elastice);
+                CEmailProviderType.Gmail);
 
             // save userToken
             var userTokenEntity = new UserTokenCustomEntity()

@@ -9,6 +9,7 @@ namespace Core.Domain
         [Description(description: "Send email")]
         Email = 2,
         Order = 3,
+        [Description(description: "Registration account")]
         Register = 4,
     }
 

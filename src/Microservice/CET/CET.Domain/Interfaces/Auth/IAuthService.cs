@@ -10,8 +10,9 @@ namespace CET.Domain
             ConfirmTwoFactorAuthenticationRequestDto twoFactorDto, ModelStateDictionary? modelState = null);
         Task<ApiResponse<LoginResponseDto>> RefreshTokenAsync(RefreshTokenRequestDto refreshTokenDto,
             ModelStateDictionary? modelState = null);
-        Task<ApiResponse<RegisterResponsetDto>> RegisterAsync(RegisterRequestDto registerDto,
+        Task<ApiResponse<ResultMessage>> RegisterAsync(RegisterRequestDto registerDto,
             ModelStateDictionary? modelState = null);
+        Task<ResultMessage> ConfirmRegisterAsync(ConfirmEmailDto confirmEmailDto, ModelStateDictionary? modelState = null);
         Task<ApiResponse<ResultMessage>> RequestResetPasswordAsync(
             ResetPasswordRequestDto resetPasswordDto, ModelStateDictionary? modelState = null);
         Task<ApiResponse<ResultMessage>> ConfirmResetPasswordAsync(ConfirmResetPasswordRequestDto confirmDto,

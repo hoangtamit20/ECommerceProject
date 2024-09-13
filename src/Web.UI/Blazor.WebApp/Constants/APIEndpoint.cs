@@ -9,6 +9,8 @@ namespace Blazor.WebApp
         public const string CET_Auth_LogOut = "api/v1/cet/auth/logout";
         public const string CET_Auth_Authentication = "api/v1/cet/auth/authentication";
         public const string CET_Auth_ResetPassword = "api/v1/cet/auth/requestresetpassword";
+        public const string CET_Auth_ConfirmPasswordReset = "api/v1/cet/auth/confirmpasswordreset";
+        public const string CET_Auth_Register = "api/v1/cet/auth/register";
         #endregion CET/Auth
     }
 }
