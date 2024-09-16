@@ -1,5 +1,4 @@
 using Core.Domain;
-using Core.Domain.Entities.CET.Auth;
 using Microsoft.AspNetCore.Identity;
 using Microsoft.AspNetCore.Identity.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore;

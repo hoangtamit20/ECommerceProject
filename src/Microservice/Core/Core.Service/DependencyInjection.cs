@@ -1,8 +1,6 @@
-﻿using System.Reflection;
-using System.Security.Claims;
+﻿using System.Security.Claims;
 using System.Text;
 using Core.Domain;
-using Core.Domain.Interfaces;
 using Database;
 using Microsoft.AspNetCore.Authentication.JwtBearer;
 using Microsoft.AspNetCore.Builder;
