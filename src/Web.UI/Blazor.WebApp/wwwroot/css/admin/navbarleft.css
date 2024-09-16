@@ -1,0 +1,36 @@
+.fixed-left {
+    position: fixed;
+    left: 0;
+    top: 0;
+    bottom: 0;
+    width: 250px;
+    /* Đặt chiều rộng mặc định */
+    z-index: 1000;
+    overflow-y: auto;
+    /* Cuộn dọc */
+    overflow-x: hidden;
+}
+
+.navbar-nav {
+    align-items: flex-start;
+    /* Căn về phía start */
+}
+
+.navbar-nav .nav-item {
+    margin-left: 0.25rem;
+    margin-right: 0.25rem;
+    /* margin trái và phải tương đương mx-1 */
+}
+
+
+@media (max-width: 992px) {
+    .fixed-left {
+        width: 80px;
+        /* Thu gọn lại khi màn hình nhỏ */
+    }
+}
+
+.navbar-nav .nav-link {
+    white-space: nowrap;
+    /* Đảm bảo không bị cắt từ */
+}

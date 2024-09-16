@@ -1,6 +1,4 @@
 using Microsoft.AspNetCore.Components;
-using Microsoft.AspNetCore.Components.Routing;
-using Microsoft.JSInterop;
 
 namespace Blazor.WebApp
 {
@@ -15,16 +13,11 @@ namespace Blazor.WebApp
             _stateContainer = stateContainer;
         }
 
-        public async Task TrackNavigationAsync(IJSRuntime jsRuntime)
+        public async Task TrackNavigationAsync()
         {
-            // Đăng ký sự kiện khi URL thay đổi
-            _stateContainer.PreviousUrl = await JavaScriptHelper.GetCurrentUrlAsync(jsRuntime: jsRuntime);
-            _navigationManager.LocationChanged += OnLocationChanged;
-        }
-
-        private void OnLocationChanged(object? sender, LocationChangedEventArgs e)
-        {
-            _stateContainer.PreviousUrl = e.Location;
+            var uri = _navigationManager.Uri;
+            _stateContainer.PreviousUrl = uri;
+            await Task.CompletedTask;
         }
     }
 }

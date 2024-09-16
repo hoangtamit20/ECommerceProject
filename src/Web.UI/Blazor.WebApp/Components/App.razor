@@ -21,8 +21,8 @@
 
 <body>
     <Routes @rendermode="new InteractiveServerRenderMode(prerender: false)" />
-    <script src="javascripts/basecsript.js"></script>
     <script src="javascripts/bootstrap.bundle.min.js"></script>
+    <script src="javascripts/basecsript.js"></script>
 </body>
 
 </html>
@@ -31,10 +31,11 @@
     protected override async Task OnInitializedAsync()
     {
         await base.OnInitializedAsync();
+        await NavigationService.TrackNavigationAsync();
     }
 
     protected override async Task OnAfterRenderAsync(bool firstRender)
     {
-        await NavigationService.TrackNavigationAsync(_jsRuntime);
+        await Task.CompletedTask;
     }
 }

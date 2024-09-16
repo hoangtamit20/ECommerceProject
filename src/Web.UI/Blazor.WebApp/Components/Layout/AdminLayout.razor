@@ -1,0 +1,142 @@
+@inherits LayoutComponentBase
+
+<link href="https://cdn.lineicons.com/4.0/lineicons.css" rel="stylesheet" />
+
+<div class="wrapper">
+    <aside id="sidebar">
+        <div class="d-flex border-top">
+            <button class="toggle-btn" type="button">
+                <i class="bi bi-grid"></i>
+            </button>
+            <div class="sidebar-logo">
+                <a href="#">CodzSword</a>
+            </div>
+        </div>
+        <ul class="sidebar-nav p-0 m-0 scrollarea">
+            @foreach (var item in navItems)
+            {
+                <li class="sidebar-item border-top">
+                    <a href="@item.Url" class="sidebar-link @((item.HasDropdown ? "collapsed has-dropdown" : ""))"
+                        data-bs-toggle="collapse" data-bs-target="#@item.Title.Replace(" ", "-").ToLower()"
+                        aria-expanded="false" aria-controls="@item.Title.Replace(" ", "-").ToLower()">
+                        <i class="@item.IconClass"></i>
+                        <span>@item.Title</span>
+                    </a>
+                    @if (item.HasDropdown && item.SubItems != null)
+                    {
+                        <ul id="@item.Title.Replace(" ", "-").ToLower()" class="sidebar-dropdown list-unstyled collapse"
+                            data-bs-parent="#sidebar">
+                            @foreach (var subItem in item.SubItems)
+                            {
+                                <li class="sidebar-item">
+                                    <a href="@subItem.Url" class="sidebar-link @((subItem.HasDropdown ? "collapsed" : ""))"
+                                        data-bs-toggle="collapse" data-bs-target="#@subItem.Title.Replace(" ", "-").ToLower()"
+                                        aria-expanded="false" aria-controls="@subItem.Title.Replace(" ", "-").ToLower()">
+                                        @subItem.Title
+                                    </a>
+                                    @if (subItem.HasDropdown && subItem.SubItems != null)
+                                    {
+                                        <ul id="@subItem.Title.Replace(" ", "-").ToLower()"
+                                            class="sidebar-dropdown list-unstyled collapse">
+                                            @foreach (var subSubItem in subItem.SubItems)
+                                            {
+                                                <li class="sidebar-item">
+                                                    <a href="@subSubItem.Url" class="sidebar-link">@subSubItem.Title</a>
+                                                </li>
+                                            }
+                                        </ul>
+                                    }
+                                </li>
+                            }
+                        </ul>
+                    }
+                </li>
+            }
+        </ul>
+
+        <div class="sidebar-footer border-top">
+            <a href="#" class="sidebar-link">
+                <i class="bi bi-box-arrow-right"></i>
+                <span>Logout</span>
+            </a>
+        </div>
+    </aside>
+    <div class="main p-0">
+        @Body
+    </div>
+</div>
+
+
+@code {
+    protected override async Task OnAfterRenderAsync(bool firstRender)
+    {
+        if (firstRender)
+        {
+            await _jsRuntime.InvokeVoidAsync("initializeSidebar");
+        }
+    }
+    private List<NavItemModel> navItems = new List<NavItemModel>
+    {
+        new NavItemModel
+        {
+            Title = "Profile",
+            Url = "#",
+            IconClass = "bi bi-person",
+            HasDropdown = false
+        },
+        new NavItemModel
+        {
+            Title = "Task",
+            Url = "#",
+            IconClass = "bi bi-list-task",
+            HasDropdown = false
+        },
+        new NavItemModel
+        {
+            Title = "Auth",
+            Url = "#",
+            IconClass = "bi bi-shield-lock",
+            HasDropdown = true,
+            SubItems = new List<NavItemModel>
+            {
+                new NavItemModel { Title = "Login", Url = "#" },
+                new NavItemModel { Title = "Register", Url = "#" }
+            }
+        },
+        new NavItemModel
+        {
+            Title = "Multi Level",
+            Url = "#",
+            IconClass = "",
+            HasDropdown = true,
+            SubItems = new List<NavItemModel>
+            {
+                new NavItemModel
+                {
+                    Title = "Two Links",
+                    Url = "#",
+                    HasDropdown = true,
+                    SubItems = new List<NavItemModel>
+                    {
+                        new NavItemModel { Title = "Link 1", Url = "#" },
+                        new NavItemModel { Title = "Link 2", Url = "#" }
+                    }
+                }
+            }
+        },
+        new NavItemModel
+        {
+            Title = "Notification",
+            Url = "#",
+            IconClass = "bi bi-bell",
+            HasDropdown = false
+        },
+        new NavItemModel
+        {
+            Title = "Setting",
+            Url = "#",
+            IconClass = "bi bi-gear",
+            HasDropdown = false
+        }
+    };
+}

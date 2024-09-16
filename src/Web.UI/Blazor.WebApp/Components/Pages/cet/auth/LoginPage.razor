@@ -155,6 +155,7 @@
                 if (response.Data != null && response.Data.TwoFactorEnabled)
                 {
                     StateContainer.SetMessage(response?.Data?.Message ?? string.Empty);
+                    StateContainer.PreviousUrl = NavigationManager.Uri;
                     NavigationManager.NavigateTo($"/two-factor-authentication?email={Uri.EscapeDataString(LoginModel.Email)}");
                 }
                 // Handle success (e.g., navigate or display success message)

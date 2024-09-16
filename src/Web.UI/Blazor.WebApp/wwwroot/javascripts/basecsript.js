@@ -5,21 +5,30 @@ function moveToNext(elementId) {
     }
 }
 
-function hideElementsAfterDelay(id, delay) {    
-    setTimeout(function() {
+function hideElementsAfterDelay(id, delay) {
+    setTimeout(function () {
         var frameErr = document.getElementById(id);
-        if (frameErr)
-        {
+        if (frameErr) {
             frameErr.style.display = 'none';
         }
     }, delay);
 }
 
-function getCurrentUrl()
-{
+function getCurrentUrl() {
     return window.location.href;
 }
 
-function closeTab() {    
+function closeTab() {
     window.close();
 }
+
+
+window.initializeSidebar = () => {
+    const hamBurger = document.querySelector(".toggle-btn");
+
+    if (hamBurger) {
+        hamBurger.addEventListener("click", function () {
+            document.querySelector("#sidebar").classList.toggle("expand");
+        });
+    }
+};
