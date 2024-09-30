@@ -1,0 +1,6 @@
+body {
+    margin: 0;
+    padding: 0;
+    background: url('../../assets/images/layout/Background_1.jpg') no-repeat center center fixed;
+    background-size: cover;
+}
