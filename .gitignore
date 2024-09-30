@@ -27,4 +27,4 @@ Properties/serviceDependencies.local.json.user
 # Migrations
 Data/Migrations
 
-# config.Development.json
+config.Development.json
