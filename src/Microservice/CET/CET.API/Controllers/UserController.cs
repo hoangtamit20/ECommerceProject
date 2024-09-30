@@ -1,3 +1,4 @@
+using System.Security.Claims;
 using CET.Domain;
 using Core.Domain;
 using Microsoft.AspNetCore.Authorization;
@@ -19,7 +20,7 @@ namespace CET.API.Controllers
             _logger = logger;
         }
 
-        [HttpPost("createuser")]
+        [HttpPost("create")]
         public async Task<IActionResult> AddUser(CreateUserRequestDto requestDto)
         {
             try
@@ -32,6 +33,14 @@ namespace CET.API.Controllers
                 return StatusCode(statusCode: StatusCodes.Status500InternalServerError,
                     value: $"{ex.Message}");
             }
+        }
+
+        [HttpGet("/roles")]
+        [Authorize]
+        public async Task<IActionResult> GetUserRoles()
+        {
+            var roles = User.FindAll(ClaimTypes.Role).Select(role => role.Value).ToList();
+            return Ok(await Task.FromResult(new { Success = true, Data = roles}));
         }
     }
 }

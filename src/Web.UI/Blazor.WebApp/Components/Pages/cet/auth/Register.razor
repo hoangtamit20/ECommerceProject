@@ -23,9 +23,10 @@
                                     <!-- Full Name Input -->
                                     <div class="mb-3">
                                         <label for="fullName" class="form-label text-secondary">Full Name <span
-                                            class="text-danger">*</span></label>
+                                                class="text-danger">*</span></label>
                                         <div class="input-group">
-                                            <span class="input-group-text bg-white"><i class="bi bi-person text-primary fw-bold"></i></span>
+                                            <span class="input-group-text bg-white"><i
+                                                    class="bi bi-person text-primary fw-bold"></i></span>
                                             <InputText id="fullName" @bind-Value="RegisterRequestDto.FullName"
                                                 class="form-control" placeholder="Enter your full name" />
                                         </div>
@@ -36,9 +37,10 @@
                                     <!-- Email Input -->
                                     <div class="mb-3">
                                         <label for="email" class="form-label text-secondary">Email <span
-                                            class="text-danger">*</span></label>
+                                                class="text-danger">*</span></label>
                                         <div class="input-group">
-                                            <span class="input-group-text bg-white"><i class="bi bi-envelope text-primary fw-bold"></i></span>
+                                            <span class="input-group-text bg-white"><i
+                                                    class="bi bi-envelope text-primary fw-bold"></i></span>
                                             <InputText id="email" @bind-Value="RegisterRequestDto.Email"
                                                 class="form-control" placeholder="Enter your email" />
                                         </div>
@@ -49,11 +51,13 @@
                                     <!-- Password Input -->
                                     <div class="mb-3">
                                         <label for="password" class="form-label text-secondary">Password <span
-                                            class="text-danger">*</span></label>
+                                                class="text-danger">*</span></label>
                                         <div class="input-group">
-                                            <span class="input-group-text bg-white"><i class="bi bi-lock text-primary fw-bold"></i></span>
+                                            <span class="input-group-text bg-white"><i
+                                                    class="bi bi-lock text-primary fw-bold"></i></span>
                                             <InputText id="password" @bind-Value="RegisterRequestDto.Password"
-                                                class="form-control" type="password" placeholder="Enter your password" />
+                                                class="form-control" type="password"
+                                                placeholder="Enter your password" />
                                         </div>
                                         <ValidationMessage For="@(() => RegisterRequestDto.Password)" />
                                         <FieldErrorComponent Errors="Errors" FieldName="Password_Error" />
@@ -61,10 +65,11 @@
 
                                     <!-- Confirm Password Input -->
                                     <div class="mb-3">
-                                        <label for="confirmPassword" class="form-label text-secondary">Confirm Password <span
-                                            class="text-danger">*</span></label>
+                                        <label for="confirmPassword" class="form-label text-secondary">Confirm Password
+                                            <span class="text-danger">*</span></label>
                                         <div class="input-group">
-                                            <span class="input-group-text bg-white"><i class="bi bi-lock text-primary fw-bold"></i></span>
+                                            <span class="input-group-text bg-white"><i
+                                                    class="bi bi-lock text-primary fw-bold"></i></span>
                                             <InputText id="confirmPassword"
                                                 @bind-Value="RegisterRequestDto.ConfirmPassword" class="form-control"
                                                 type="password" placeholder="Repeat your password" />
@@ -88,7 +93,8 @@
                                             class="btn btn-primary btn-lg">Register</button>
                                     </div>
                                     <div class="text-center">
-                                        <p class="mb-0">Already have an account? <a href="/login" class="text-primary">Back to login</a></p>
+                                        <p class="mb-0">Already have an account? <a href="/login"
+                                                class="text-primary">Back to login</a></p>
                                     </div>
 
                                 </EditForm>
@@ -96,8 +102,7 @@
                             </div>
                             <div class="col-md-10 col-lg-6 col-xl-7 d-flex align-items-center order-1 order-lg-2">
 
-                                <img src="images/auth/Register.png"
-                                    class="img-fluid" alt="Sample image">
+                                <img src="images/auth/Register.png" class="img-fluid" alt="Sample image">
 
                             </div>
                         </div>
@@ -121,8 +126,8 @@
     protected override async Task OnInitializedAsync()
     {
         await AuthenticationHelper.AuthenticationAsync(loadingStatus: LoadingStatus, apiClient: ApiClient,
-            stateContainer: StateContainer, navigationManager: NavigationManager,
-            localStorage: _localStorage, toastService: _toastService);
+        stateContainer: StateContainer, navigationManager: NavigationManager,
+        localStorage: _localStorage, toastService: _toastService);
     }
 
     private async Task RegisterUserAsync()
@@ -145,7 +150,11 @@
             }
             else
             {
-                _toastService.ShowError(message: ToastHelper.ErrorMessage<ResultMessage>(response: response));
+                var message = ToastHelper.ErrorMessage<ResultMessage>(response: response);
+                if (!string.IsNullOrEmpty(message))
+                {
+                    _toastService.ShowError(message: message);
+                }
             }
         }
         catch (Exception ex)

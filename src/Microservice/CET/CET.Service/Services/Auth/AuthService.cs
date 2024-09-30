@@ -156,8 +156,8 @@ namespace CET.Service
                         _logger.LogError($"{ex.Message}");
                         errors.Add(new ErrorDetail()
                         {
-                            Error = $"An error occured while generate token for two factor authentication and send email",
-                            ErrorScope = CErrorScope.FormSummary,
+                            Error = $"An error occured while generate token for two factor authentication and send email. Error : {ex.Message}",
+                            ErrorScope = CErrorScope.PageSumarry,
                         });
                         response.StatusCode = StatusCodes.Status503ServiceUnavailable;
                         response.Result.Success = false;

@@ -1,0 +1,81 @@
+{
+    "AppSettings": {
+        "ConnectionStrings":
+        {
+            "CET_Connection": "Server=DELL\\TAMHOANG; Database=ECommerceDb; User Id=sa; Password=Khuong=090217; Trusted_Connection=true; TrustServerCertificate=True;",
+            "CUS_Connection": "Server=DELL\\TAMHOANG; Database=ECommerceDb; User Id=sa; Password=Khuong=090217; Trusted_Connection=true; TrustServerCertificate=True;"
+        },
+        "ClientApp":
+        {
+            "Address": "K144/68 Nguyễn Lương Bằng, Hòa Khánh Bắc, Liên Chiểu, Đà Nẵng",
+            "Email": "hoangtamit20@gmail.com",
+            "OwnerName": "Hoàng Trọng Tâm",
+            "OwnerPhone": "+84.369.450.059",
+            "CompanyName": "Hoa Tam Inc",
+            "CompanyBranch": "Đà Nẵng",
+            "ClientEndpoint": "https://localhost:7037"
+        },
+        "JwtSetting": {
+            "SecretKey": "YcxjOMewdFfeZFQm5iGAYxTjR23Z93rLbyZucty3",
+            "Issuer": "https://localhost:7035",
+            "Audience": "https://localhost:7035"
+        },
+        "EmailSetting":
+        {
+            "MailKitSetting":
+            {
+                "GmailSmtp":
+                {
+                    "Server": "smtp.gmail.com",
+                    "Port": 587,
+                    "SenderName": "HoaTam.HoTro.Dev",
+                    "SenderEmail": "thesenegalteam@gmail.com",
+                    "Username": "thesenegalteam@gmail.com",
+                    "Password": "kudiwwwxjypoffra",
+                    "EnableSsl": true
+
+                },
+                "OutlookSmtp":
+                {
+                    "Server": "smtp.office365.com",
+                    "Port": 587,
+                    "SenderName": "HoaTam.HoTro.Dev",
+                    "SenderEmail": "hoatam.hotro.dev@outlook.com",
+                    "Username": "hoatam.hotro.dev@outlook.com",
+                    "Password": "your-outlook-password",
+                    "EnableSsl": true
+                },
+                "ProtonMailSmtp":
+                {
+                    "Server": "127.0.0.1",
+                    "Port": 1025,
+                    "SenderName": "Your ProtonMail Name",
+                    "SenderEmail": "your-email@protonmail.com",
+                    "Username": "your-email@protonmail.com",
+                    "Password": "your-protonmail-password",
+                    "EnableSsl": false
+                },
+                "BrevoSmtp":
+                {
+                    "Server": "smtp-relay.brevo.com",
+                    "Port": 587,
+                    "SenderName": "HoaTam.HoTro.Dev",
+                    "SenderEmail": "hoatam.hotro.dev@outlook.com",
+                    "Username": "7b5d67001@smtp-brevo.com",
+                    "Password": "GU925VHqO8fYS10E",
+                    "EnableSsl": true
+                },
+                "ElasticeSmtp":
+                {
+                    "Server": "smtp.elasticemail.com",
+                    "Port": 2525,
+                    "SenderName": "HoaTam.HoTro.Dev",
+                    "SenderEmail": "hoatam.hotro.dev@outlook.com",
+                    "Username": "hoatam.hotro.dev@outlook.com",
+                    "Password": "F6D41B5F90D6771656187C7E9B3F0D6E8391",
+                    "EnableSsl": true
+                }
+            }
+        }
+    }
+}

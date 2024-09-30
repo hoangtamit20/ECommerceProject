@@ -7,6 +7,7 @@ namespace Core.Domain
     {
         [Required(ErrorMessage = "{0} is required.")]
         public string FullName { get; set; } = string.Empty;
+        [Required(ErrorMessage = "{0} is required.")]
         [EmailAddress(ErrorMessage = "{0} is invalid email format.")]
         public string Email { get; set; } = string.Empty;
         [Required(ErrorMessage = "{0} is required.")]

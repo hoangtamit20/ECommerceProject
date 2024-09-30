@@ -39,21 +39,6 @@ namespace Blazor.WebApp
             var responseData = await response.Content.ReadAsStringAsync();
 
             return responseData.FromJson<ResponseResult<TResponse>>();
-
-            // if (response.IsSuccessStatusCode)
-            // {
-            //     return JsonSerializer.Deserialize<>(responseData, new JsonSerializerOptions { PropertyNameCaseInsensitive = true });
-            // }
-
-            // return new ApiResponse<TResponse>
-            // {
-            //     StatusCode = (int)response.StatusCode,
-            //     Result = new ResponseResult<TResponse>
-            //     {
-            //         Success = false,
-            //         Errors = JsonSerializer.Deserialize<List<ErrorDetail>>(responseData) ?? new()
-            //     }
-            // };
         }
 
         public async Task<bool> IsAuthentication()
